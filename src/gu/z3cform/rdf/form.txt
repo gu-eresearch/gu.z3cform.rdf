@@ -1,0 +1,423 @@
+
+=====
+Forms
+=====
+
+TODO: workflow ...
+    add:
+    1. create new context, and attach graph to it.
+    2. ??? what to do when graph already there? (replace, complain, merge)
+    edit:
+    1. get graph for context,
+    2. show values / form ... (according to form definition)
+    3. write walues back.
+    display:
+    1. get graph and update form
+
+    get graph:
+    either there is a uri to get whole graph, or it' might be driven
+    by sparql query (this query may come from fresnel definitions)
+
+    context might be graph itself
+
+    Note: for now all the datamanager can only work on graphs. so the
+    first part of the document is only useful to show standard
+    behaviour of fields / widgets
+
+
+Let's do some form testing here with rdflib graphs and our n3 widgets.
+
+Get started and initialise z3c.form stuff
+
+    >>> from z3c.form import testing
+    >>> testing.setupFormDefaults()
+    >>> from zope.publisher.interfaces.browser import IBrowserRequest
+    >>> import z3c.form.interfaces
+    >>> z3c.form.interfaces.IFormLayer.isOrExtends(IBrowserRequest)
+    False
+
+We also need to import our stuff
+
+    >>> from rdflib import Namespace
+    >>> FOAF = Namespace(u'http://xmlns.com/foaf/0.1/')
+    >>> from gu.z3cform.rdf.schema import RDFN3Field
+
+We alse need an interface to drive the form
+
+    >>> import zope.interface
+    >>> import zope.schema
+    >>> class ITest1(zope.interface.Interface):
+    ...
+    ...     id = zope.schema.TextLine(
+    ...         title=u'ID',
+    ...         readonly=True,
+    ...         required=True)
+    ...
+    ...     name = RDFN3Field(
+    ...         title=u'Name',
+    ...         prop=FOAF['name'],
+    ...         required=True)
+
+    >>> from zope.schema.fieldproperty import FieldProperty
+    >>> class Test1(object):
+    ...     zope.interface.implements(ITest1)
+    ...     id = FieldProperty(ITest1['id'])
+    ...     name = FieldProperty(ITest1['name'])
+    ...
+    ...     def __init__(self, id, name):
+    ...         self.id = id
+    ...         self.name = name
+    ...
+    ...     def __repr__(self):
+    ...         return '<%s %r>' % (self.__class__.__name__, self.name)
+
+So far we have got an interface and a class implementing this interface.
+Let's create an add form.
+
+    >>> from z3c.form.testing import TestRequest
+    >>> from z3c.form import form, field
+    >>> class Test1AddForm(form.AddForm):
+    ...
+    ...     fields = field.Fields(ITest1)
+    ...
+    ...     def create(self, data):
+    ...         return Test1(**data)
+    ...
+    ...     def add(self, object):
+    ...         self.context[object.id] = object
+    ...
+    ...     def nextURL(self):
+    ...         return 'index.html'
+
+Let's try it out. The root folder has been created during test setup.
+
+    >>> request = TestRequest()
+    >>> addForm = Test1AddForm(root, request)
+    >>> addForm.update()
+
+after this the form should have a couple of extra things added:
+
+    >>> addForm.widgets.keys()
+    ['id', 'name']
+    >>> name = addForm.widgets['name']
+    >>> name.label
+    u'Name'
+    >>> name.required
+    True
+    >>> name.value
+    u''
+    >>> name.mode
+    'input'
+    >>> addForm.actions.keys()
+    ['add']
+
+
+We can also render the form, but we'll need a template to do so.
+
+    >>> import os
+    >>> from zope.browserpage.viewpagetemplatefile import BoundPageTemplate
+    >>> from zope.browserpage.viewpagetemplatefile import ViewPageTemplateFile
+    >>> from z3c.form import tests
+    >>> def addTemplate(form):
+    ...     form.template = BoundPageTemplate(
+    ...         ViewPageTemplateFile(
+    ...             'simple_edit.pt', os.path.dirname(tests.__file__)), form)
+    >>> addTemplate(addForm)
+
+Now we can actually render it.
+
+    >>> print addForm()
+    <html xmlns="http://www.w3.org/1999/xhtml">
+      <body>
+        <form action=".">
+          <div class="row">
+            <label for="form-widgets-id">ID</label>
+            <input id="form-widgets-id" name="form.widgets.id" class="text-widget required textline-field" value="" type="text" />
+          </div>
+          <div class="row">
+            <label for="form-widgets-name">Name</label>
+            <textarea id="form-widgets-name" name="form.widgets.name" class="textarea-widget required rdfn3field-field"></textarea>
+          </div>
+          <div class="action">
+            <input id="form-buttons-add" name="form.buttons.add" class="submit-widget button-field" value="Add" type="submit" />
+          </div>
+        </form>
+      </body>
+    </html>
+
+We can also submit it.
+
+    >>> request = TestRequest(form={
+    ...     'form.widgets.id': u'jbloggs',
+    ...     'form.widgets.name': u'"Joe Bloggs"',
+    ...     'form.buttons.add': u'Add',
+    ...     })
+
+    >>> addForm = Test1AddForm(root, request)
+    >>> addForm.update()
+  
+    >>> sorted(root)
+    [u'jbloggs']
+    >>> joe = root[u'jbloggs']
+    >>> joe.id
+    u'jbloggs'
+    >>> joe.name.n3()
+    u'"Joe Bloggs"'
+
+Submit with error
+
+    >>> request = TestRequest(form={
+    ...     'form.widgets.id': u'jbloggs',
+    ...     'form.buttons.add': u'Add',
+    ...     })
+
+    >>> addForm = Test1AddForm(root, request)
+    >>> addForm.update()
+
+Inspect the error and render the form
+
+    >>> [(error.widget.__name__, error) for error in addForm.widgets.errors]
+    [('name', <ErrorViewSnippet for RequiredMissing>)]
+
+    >>> addForm.widgets['name'].error
+    <ErrorViewSnippet for RequiredMissing>
+
+    >>> addTemplate(addForm)
+    >>> print addForm()
+    <html xmlns="http://www.w3.org/1999/xhtml">
+      <body>
+        <i>There were some errors.</i>
+        <ul>
+          <li>
+              Name:
+            <div class="error">Required input is missing.</div>
+          </li>
+        </ul>
+        <form action=".">
+          <div class="row">
+            <label for="form-widgets-id">ID</label>
+              <input id="form-widgets-id" name="form.widgets.id" class="text-widget required textline-field" value="jbloggs" type="text" />
+          </div>
+          <div class="row">
+            <b>
+              <div class="error">Required input is missing.</div>
+            </b><label for="form-widgets-name">Name</label>
+            <textarea id="form-widgets-name" name="form.widgets.name" class="textarea-widget required rdfn3field-field"></textarea>
+          </div>
+          <div class="action">
+            <input id="form-buttons-add" name="form.buttons.add" class="submit-widget button-field" value="Add" type="submit" />
+          </div>
+        </form>
+      </body>
+    </html>
+
+Our N3 field can only accept URIRefs or Literals but should complain
+about BNodes.
+
+    >>> request = TestRequest(form={
+    ...     'form.widgets.id': u'jbloggs',
+    ...     'form.widgets.name': u'Joe Bloggs',
+    ...     'form.buttons.add': u'Add'}
+    ...     )
+  
+    >>> addForm = Test1AddForm(root, request)
+    >>> addTemplate(addForm)
+  
+update and see how the form looks like:
+
+    >>> print addForm() # doctest: +NOPARSE_MARKUP
+    <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+    <html xmlns="http://www.w3.org/1999/xhtml">
+      <body>
+        <i>There were some errors.</i>
+        <ul>
+          <li>
+    <BLANKLINE>
+              Name:
+    <BLANKLINE>
+    <BLANKLINE>
+      <div class="error">Object is of wrong type.</div>
+    <BLANKLINE>
+    <BLANKLINE>
+          </li>
+        </ul>
+        ...
+      </body>
+    </html>
+
+Let's try editing
+
+    >>> class Test1EditForm(form.EditForm):
+    ...
+    ...     fields = field.Fields(ITest1)
+
+    >>> editForm = Test1EditForm(root[u'jbloggs'], TestRequest())
+    >>> addTemplate(editForm)
+    >>> print editForm()
+    <html xmlns="http://www.w3.org/1999/xhtml">
+      <body>
+        <form action=".">
+          <div class="row">
+            <label for="form-widgets-id">ID</label>
+            <span id="form-widgets-id" class="text-widget required textline-field">jbloggs</span>
+          </div>
+          <div class="row">
+            <label for="form-widgets-name">Name</label>
+            <textarea id="form-widgets-name" name="form.widgets.name" class="textarea-widget required rdfn3field-field">&quot;Joe Bloggs&quot;</textarea>
+          </div>
+          <div class="action">
+            <input id="form-buttons-apply" name="form.buttons.apply" class="submit-widget button-field" value="Apply" type="submit" />
+          </div>
+        </form>
+      </body>
+    </html>
+
+Submit it with changes:
+
+    >>> request = TestRequest(form={
+    ...     'form.widgets.name': u'"Mary Bloggs"',
+    ...     'form.buttons.apply': u'Apply',
+    ...     })
+  
+    >>> editForm = Test1EditForm(root[u'jbloggs'], request)
+    >>> addTemplate(editForm)
+    >>> editForm.update()
+    >>> print testing.render(editForm, './/xmlns:i')
+    <i>Data successfully updated.</i>
+  
+    >>> joe = root[u'jbloggs']
+    >>> joe.name.n3()
+    u'"Mary Bloggs"'
+
+We can also check for zope editing events
+
+    >>> eventlog = []
+    >>> import zope.lifecycleevent
+    >>> @zope.component.adapter(zope.lifecycleevent.ObjectModifiedEvent)
+    ... def logEvent(event):
+    ...     eventlog.append(event)
+    >>> zope.component.provideHandler(logEvent)
+  
+Let's now submit the form again, successfully changing the age:
+
+    >>> request = TestRequest(form={
+    ...     'form.widgets.name': u'"Fred Bloggs"',
+    ...     'form.buttons.apply': u'Apply'}
+    ...     )
+  
+    >>> editForm = Test1EditForm(root[u'jbloggs'], request)
+    >>> addTemplate(editForm)
+    >>> editForm.update()
+  
+We can now look at the event:
+
+    >>> event = eventlog[-1]
+    >>> event
+    <zope...ObjectModifiedEvent object at ...>
+  
+    >>> attrs = event.descriptions[0]
+    >>> attrs.interface
+    <InterfaceClass __builtin__.ITest1>
+    >>> attrs.attributes
+    ('name',)
+
+No change reporting in form:
+
+    >>> request = TestRequest(form={
+    ...     'form.widgets.name': u'"Fred Bloggs"',
+    ...     'form.buttons.apply': u'Apply'}
+    ...     )
+  
+    >>> editForm = Test1EditForm(root[u'jbloggs'], request)
+    >>> addTemplate(editForm)
+    >>> editForm.update()
+    >>> print testing.render(editForm, './/xmlns:i')
+    <i>No changes were applied.</i>
+
+
+and there are also DisplayForms:
+
+    >>> class Test1DisplayForm(form.DisplayForm):
+    ...     fields = field.Fields(ITest1)
+    ...     template = ViewPageTemplateFile(
+    ...         'simple_display.pt', os.path.dirname(tests.__file__))
+  
+    >>> display = Test1DisplayForm(joe, TestRequest())
+    >>> display.update()
+    >>> print display.render()
+    <html xmlns="http://www.w3.org/1999/xhtml">
+      <body>
+        <div class="row">
+          <span id="form-widgets-id" class="text-widget required textline-field">jbloggs</span>
+        </div>
+        <div class="row">
+          <span id="form-widgets-name" class="textarea-widget required rdfn3field-field">&quot;Fred Bloggs&quot;</span>
+        </div>
+      </body>
+    </html>
+
+
+Use rdflib graphs as form context
+
+    >>> from rdflib import URIRef, Literal, Graph
+    >>> subject = URIRef(u"http://example.com/ind1")
+    >>> g = Graph(identifier=subject)
+    >>> g.add((subject, FOAF['name'], Literal(u"Joe Bloggs")))
+
+    >>> g.id = g
+    >>> root[u'g'] = g
+    >>> g = root[u'g']
+
+    >>> editForm = Test1EditForm(g, TestRequest())
+    >>> addTemplate(editForm)
+    >>> editForm.update()
+    >>> print editForm.render()
+    <html xmlns="http://www.w3.org/1999/xhtml">
+      <body>
+        <form action=".">
+          <div class="row">
+            <label for="form-widgets-id">ID</label>
+            <span id="form-widgets-id" class="text-widget required textline-field"></span>
+          </div>
+          <div class="row">
+            <label for="form-widgets-name">Name</label>
+            <textarea id="form-widgets-name" name="form.widgets.name" class="textarea-widget required rdfn3field-field">"Joe Bloggs"</textarea>
+          </div>
+          <div class="action">
+            <input id="form-buttons-apply" name="form.buttons.apply" class="submit-widget button-field" value="Apply" type="submit" />
+          </div>
+        </form>
+      </body>
+    </html>
+
+Let's edit the graph:
+
+    >>> request = TestRequest(form={
+    ...     'form.widgets.name': u'"Fred Bloggs"',
+    ...     'form.buttons.apply': u'Apply'}
+    ...     )
+    >>> editForm = Test1EditForm(g, request)
+    >>> addTemplate(editForm)
+    >>> editForm.update()
+    >>> print editForm.render()
+    <html xmlns="http://www.w3.org/1999/xhtml">
+      <body>
+        <i>Data successfully updated.</i>
+        <form action=".">
+          <div class="row">
+            <label for="form-widgets-id">ID</label>
+            <span class="text-widget required textline-field" id="form-widgets-id"></span>
+          </div>
+          <div class="row">
+            <label for="form-widgets-name">Name</label>
+            <textarea class="textarea-widget required rdfn3field-field" id="form-widgets-name" name="form.widgets.name">&quot;Fred Bloggs&quot;</textarea>
+          </div>
+          <div class="action">
+            <input class="submit-widget button-field" id="form-buttons-apply" name="form.buttons.apply" type="submit" value="Apply">
+          </div>
+        </form>
+      </body>
+    </html>
+    >>> g.value(subject, FOAF['name'])
+    rdflib.term.Literal(u'Fred Bloggs')
+    
