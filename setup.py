@@ -48,6 +48,7 @@ REQUIRES = [
         'zope.schema',
         'zope.component',
         'zope.interface',
+        'zope.dottedname', # TODO: keep until fieldfactory lookup becomes adapter lookup
         'z3c.form',
         'rdflib',
         ]

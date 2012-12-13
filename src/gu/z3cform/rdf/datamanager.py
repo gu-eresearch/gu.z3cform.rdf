@@ -25,6 +25,7 @@ class GraphDataManager(DataManager):
         # TODO: think ... this is slightly different to z3c.form fields, where field.__name__ is being used.
         #       __name__ might be useful in case of ORM.. .(but would I then use an N3Field or this datamanager at all?)
         if not hasattr(field, 'prop'):
+            # TODO: shall we use field.__name__ with a default url-prefix?
             self.prop = URIRef('http://fixeme.com/noprop')
         else:
             self.prop = field.prop
@@ -37,6 +38,9 @@ class GraphDataManager(DataManager):
         value = list(self.graph.objects(self.subj, self.prop))
         if value is None:
             raise AttributeError
+        # TODO: what if field is defined as single, but there are multiple values?
+        #       showing one would hide the others, showing all would confuse the field
+        # TODO: can we do IObject for sub-forms to deal with BNodes?
         if len(value) > 1 or ICollection.providedBy(self.field):
             # TODO: check if this is a generator or a full list
             return value
@@ -61,6 +65,7 @@ class GraphDataManager(DataManager):
         self.graph.remove((self.subj, self.prop, None))
         if value is None:
             return
+        # TODO: can we do IObject for sub-forms to deal with BNodes?
         if not ICollection.providedBy(self.field):
             value = [value]
         for val in value:
