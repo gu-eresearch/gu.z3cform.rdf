@@ -51,6 +51,7 @@ REQUIRES = [
         'zope.dottedname', # TODO: keep until fieldfactory lookup becomes adapter lookup
         'z3c.form',
         'rdflib',
+        'rdflib-sparql',
         ]
 
 #if sys.version_info < (2, 7):
