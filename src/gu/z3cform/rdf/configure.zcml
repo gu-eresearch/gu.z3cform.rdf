@@ -29,20 +29,6 @@
         factory=".vocabulary.GraphVocabularyFactory"
         />
 
-    <!-- <z3c:widgetTemplate -->
-    <!--     mode="display" -->
-    <!--     widget=".interfaces.IURIRefWidget" -->
-    <!--     layer="z3c.form.interfaces.IFormLayer" -->
-    <!--     template="urirefdisplay.pt" /> -->
-    <!-- <z3c:widgetTemplate -->
-    <!--     mode="input" -->
-    <!--     widget=".interfaces.IDateWidget" -->
-    <!--     layer="z3c.form.interfaces.IFormLayer" -->
-    <!--     template="templates/date_input.pt" /> -->
-    <!-- <z3c:widgetTemplate -->
-    <!--     mode="hidden" -->
-    <!--     widget=".interfaces.IDateWidget" -->
-    <!--     layer="z3c.form.interfaces.IFormLayer" -->
-    <!--     template="templates/hidden.pt" /> -->
+    <include package=".widgets"/>
 
 </configure>

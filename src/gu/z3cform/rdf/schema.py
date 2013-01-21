@@ -1,10 +1,11 @@
 from zope.interface import implements
-from zope.schema import Text, List, TextLine, URI
+from zope.schema import Text, List, TextLine, URI, Choice, Set
 from rdflib import Literal, URIRef
 from rdflib.util import from_n3
 from gu.z3cform.rdf.interfaces import IRDFN3Field, IRDFMultiValueField
 from gu.z3cform.rdf.interfaces import IRDFLiteralField, IRDFLiteralLineField
-from gu.z3cform.rdf.interfaces import IRDFURIRefField
+from gu.z3cform.rdf.interfaces import IRDFURIRefField, IRDFChoiceField
+from gu.z3cform.rdf.vocabulary import SparqlVocabularyFactory, SparqlTreeVocabularyFactory
 
 # TODO: for specilised fields like URIRef, or Literal field:
 #       in case there is data in the graph, that does not match the type
@@ -36,7 +37,7 @@ class RDFN3Field(Text):
         return value
 
 
-class RDFLiteralField(TextLine):
+class RDFLiteralField(Text):
 
     implements(IRDFLiteralField)
 
@@ -55,7 +56,7 @@ class RDFLiteralField(TextLine):
         return value
 
 
-class RDFLiteralLineField(Text):
+class RDFLiteralLineField(TextLine):
 
     implements(IRDFLiteralLineField)
 
@@ -103,4 +104,25 @@ class RDFMultiValueField(List):
         # TODO: should type chek prop here. (how is z3c doing this? with FieldProperty?)
         #       -> also check if __name__ is useful in case of ordf's ORM
         #       -> name might also be used as ID combined with default namespace
+        self.prop = prop
+
+
+class RDFURIChoiceField(Choice):
+
+    implements(IRDFChoiceField)
+
+    def __init__(self, prop, classuri, **kw):
+        kw['vocabulary'] = SparqlVocabularyFactory()(classuri)
+        super(RDFURIChoiceField, self).__init__(**kw)
+        self.prop = prop
+
+
+class RDFGroupedURIChoiceField(Choice):
+    # FIXME: have a separate class now for tree vocabulary backed field ... can register default widget for it. (don't need widgetFactory in fresnel defs.)
+
+    implements(IRDFChoiceField)
+
+    def __init__(self, prop, classuri, **kw):
+        kw['vocabulary'] = SparqlTreeVocabularyFactory()(classuri)
+        super(RDFGroupedURIChoiceField, self).__init__(**kw)
         self.prop = prop

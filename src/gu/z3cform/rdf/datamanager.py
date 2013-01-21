@@ -34,6 +34,8 @@ class GraphDataManager(DataManager):
         """Get the value.
 
         If no value can be found, raise an error
+
+        # FIXME: should return a set here, because RDF is unordered. however the widget lookup and ui deals a lot better with lists (except for comparing unordered lists).
         """
         value = list(self.graph.objects(self.subj, self.prop))
         if value is None:

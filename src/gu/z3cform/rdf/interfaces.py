@@ -58,12 +58,14 @@ class IRDFURIRefField(IRDFField):
     """
     pass
 
+class IRDFChoiceField(IRDFField):
+    """
+    A field handling rdflib URIRefs
 
-# class IN3Widget(IWidget):
-#     pass
-
-# class IURIRefWidget(IWidget):
-#     pass
+    TODO: might be nice to support RDF Classes, or SPARQL queries here
+          to restrict the set of elements that can be linked.
+    """
+    pass
 
 
 class IORDF(Interface):

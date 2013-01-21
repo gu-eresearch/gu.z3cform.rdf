@@ -8,7 +8,7 @@ from gu.z3cform.rdf.schema import RDFN3Field, RDFMultiValueField
 from zope.dottedname.resolve import resolve
 
 
-from rdflib import URIRef, RDF, Namespace
+from rdflib import URIRef, RDF, Namespace, OWL
 from zope.component import getUtility
 # from org.ausnc.rdf.behavior.interfaces import IRDFMetadata
 # from org.ausnc.rdf.interfaces import IORDF, IRDFData
@@ -66,6 +66,7 @@ class FieldsFromLensMixin(object):
     def getLens(self, individual):
         lens = None
         # FIXME: getting the complide Fresnel graph sholud be done in a better way
+        # FIXME: move this into IORDF utility, and also lens discover algorithm
         formatgraph = getUtility(IORDF).getHandler().get(FRESNEL_GRAPH_URI)
         formatgraph = Fresnel(store=formatgraph.store,
                               identifier=formatgraph.identifier)
@@ -74,6 +75,8 @@ class FieldsFromLensMixin(object):
             if rtype in formatgraph.classLenses:
                 lens = formatgraph.classLenses[rtype]
                 break
+        if lens is None:
+            lens = formatgraph.classLenses[OWL['Thing']]
         return lens
 
     def _getField(self, format, prop, formatid):
@@ -95,7 +98,8 @@ class FieldsFromLensMixin(object):
 
         # build field parameters
         fieldkw = {'title': unicode(label),
-                   '__name__': str(prop), #  FIXME: check to use valid python name?
+                   '__name__': str(prop).replace('-', '_'), #  FIXME: check to use valid python name?
+        # have to replace all - in names with underscores. z3c.forms assumes - separate name parts and might convert them to '.' if necessary. if '-' is part of actual name and not separataor, then the name will no longer match after all '-' are replaced by '.'
                    'required': False}  # FIXME: should come from lens
 
         # TODO: set fieldkw['rdftype'] if defined
@@ -111,12 +115,32 @@ class FieldsFromLensMixin(object):
             #value_type = format.value(fielddef, Z3C.valueType)
             value_type = format.value(formatid, Z3C.valueType)
             value_type_factory = resolve(value_type)
-            
-            fieldkw.update({'value_type': value_type_factory(prop=prop,
-                                                             **fieldkw)})
+            # FIXME: this is a special case .... need to make this more generic; e.g. let IORDF tool handle this
+            #        or find another way to create vocabularies or choice fields via rdf.
+            classuri = format.value(formatid, Z3C.valueClass)
+            subfieldkw = fieldkw.copy()
+            del subfieldkw['title']  # remove title from subfield.
+            if classuri is not None:
+                value_type = value_type_factory(prop=prop,
+                                                classuri=classuri,
+                                                **subfieldkw)
+            else:
+                value_type = value_type_factory(prop=prop, **subfieldkw)
+            fieldkw.update({'value_type': value_type})
+        else:
+            # FIXME: same special case as above
+            # we might thave a choice field here without a surrounding list
+            classuri = format.value(formatid, Z3C.valueClass)
+            if classuri is not None:
+                fieldkw['classuri'] = classuri
+                
         LOG.info("Add field %s for %s", prop, self.getContent().identifier)
         field = fieldfactory(prop=prop,
                              **fieldkw)
+
+        widgetfactory = format.value(formatid, Z3C.widgetFactory)
+        if widgetfactory is not None:
+            field.widgetFactory = resolve(widgetfactory)
 
 
         # field = RDFMultiValueField(__name__=str(prop),
@@ -156,8 +180,15 @@ class FieldsFromLensMixin(object):
         if lens is not None:
             fields = self._getFieldsFromFresnelLens(lens, individual.graph, individual.identifier)
         self.fields = field.Fields(*fields)
+        # TODO: apply widgetfactories here?
+        # FIXME: this is an ugly hack to pass the widgetFactory through. ... theschema fieldsholud not be bothered with widgets at all
+        for z3cfield in self.fields.values():
+            if hasattr(z3cfield.field, 'widgetFactory'):
+                z3cfield.widgetFactory = z3cfield.field.widgetFactory
+        
 
     def applyChanges(self, data):
+        # TODO: move this out to edit view, so that this class can be safely re-used in display forms
         from zope.security.management import getInteraction
         uname = "Anonymous"
         try:
@@ -196,6 +227,7 @@ class FieldsFromLensMixin(object):
         cc.add(self.getContent())
         # send changeset
         cc.commit()
+        # TODO: probably have to re-update fields, in case rdf:type has changed
 
         #######################################################################
         ## way 2 ... generate changeset manually and send it to store

@@ -52,6 +52,7 @@ REQUIRES = [
         'z3c.form',
         'rdflib',
         'rdflib-sparql',
+        'z3c.formwidget.query',
         ]
 
 #if sys.version_info < (2, 7):
