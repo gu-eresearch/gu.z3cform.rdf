@@ -78,6 +78,9 @@ class IORDF(Interface):
         return an initialised ORDF handler.
         """
 
+    def getFresnelGraph(self):
+        """ return a pre compiled Fresnel implementation """
+
     
 class IIndividual(Interface):
     """
