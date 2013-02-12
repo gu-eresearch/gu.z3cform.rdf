@@ -26,7 +26,6 @@ from ordf.vocab.fresnel import Fresnel
 LOG = logging.getLogger(__name__)
 
 #FORMAT = Namespace(u"http://aperture.semanticdesktop.org/ontology/sourceformat#")
-FRESNEL_GRAPH_URI = URIRef(u"http://namespaces.gu.edu.au/z3cform/fresnel#")
 Z3C = Namespace(u"http://namespaces.zope.org/z3c/form#")
 
 # FIXME: turn sublenses into subforms? (multisubforms? ... the only way to handle anon-nodes properly, which stil might make troubles when matching data ... e.g.: leave unrecognised fields untouched)
@@ -67,7 +66,7 @@ class FieldsFromLensMixin(object):
         lens = None
         # FIXME: getting the complide Fresnel graph sholud be done in a better way
         # FIXME: move this into IORDF utility, and also lens discover algorithm
-        formatgraph = getUtility(IORDF).getHandler().get(FRESNEL_GRAPH_URI)
+        formatgraph = getUtility(IORDF).getFresnelGraph()
         formatgraph = Fresnel(store=formatgraph.store,
                               identifier=formatgraph.identifier)
         formatgraph.compile()
@@ -193,7 +192,7 @@ class FieldsFromLensMixin(object):
         uname = "Anonymous"
         try:
             interaction = getInteraction()
-            import ipdb; ipdb.set_trace()
+            #import ipdb; ipdb.set_trace()
         except Exception, e:
             pass
         
@@ -227,6 +226,8 @@ class FieldsFromLensMixin(object):
         cc.add(self.getContent())
         # send changeset
         cc.commit()
+        # TODO: instead of commit ... put ChangeSet into Datamanager, which will commit at end of transaction.
+        #       plone specific behaviour => revised: let handler do transaction handling
         # TODO: probably have to re-update fields, in case rdf:type has changed
 
         #######################################################################
@@ -240,6 +241,5 @@ class FieldsFromLensMixin(object):
         # cs.diff(olddata, self.content)  # TODO returns number of changes... log it?
         # cs.commit()  # freeze the changeset and add changeset metadat
         # # send changeset over wire
-
 
         return result
