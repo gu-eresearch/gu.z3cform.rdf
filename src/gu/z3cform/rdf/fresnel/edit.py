@@ -64,7 +64,7 @@ class FieldsFromLensMixin(object):
 
     def getLens(self, individual):
         lens = None
-        # FIXME: getting the complide Fresnel graph sholud be done in a better way
+        # FIXME: getting the compiled Fresnel graph sholud be done in a better way
         # FIXME: move this into IORDF utility, and also lens discover algorithm
         formatgraph = getUtility(IORDF).getFresnelGraph()
         formatgraph = Fresnel(store=formatgraph.store,
