@@ -3,6 +3,8 @@ import logging
 from transaction.interfaces import ISavepointDataManager, IDataManagerSavepoint
 from zope.interface import implements
 from ordf.handler import Handler
+import threading
+from rdflib import Graph
 # transaction aware ordf handler
 
 # /Users/gerhard/Downloads/buildout/eggs/alm.solrindex-1.1.1-py2.7.egg/alm/solrindex/index.py
@@ -15,44 +17,99 @@ from ordf.handler import Handler
 
 LOG = logging.getLogger(__name__)
 
+from ordf.utils import get_identifier
+
 class TransactionAwareHandler(Handler):
 
-    def put(self, *av, **kw):
-        tn = transaction.get()
-        LOG.info("Handler: schedule put(%s, %s)", repr(av), repr(kw))
-        dh = ORDFDataManager(super(TransactionAwareHandler, self).put, *av, **kw)
-        tn.join(dh)
+    dm = None
 
-    def append(self, *av, **kw):
-        tn = transaction.get()
-        LOG.info("Handler: schedule append(%s, %s)", repr(av), repr(kw))
-        dh = ORDFDataManager(super(TransactionAwareHandler, self).append, *av, **kw)
-        tn.join(dh)
+    def __init__(self, **kw):
+        super(TransactionAwareHandler, self).__init__(**kw)
+        self.dm = ORDFDataManager(self)
+        LOG.info("Creating new handler")
+
+    def get(self, identifier):
+        identifier = get_identifier(identifier)
+        result = self.dm.get(identifier)
+        if result is None:
+            result = super(TransactionAwareHandler, self).get(identifier)
+            # dm.put(identifier, result) no need to cache/store a read only graph
+            #   we only put stuff, that will be put back to store
+        else:
+            LOG.info("Handler: Returned cached graph %s", identifier)
+        return result
+
+    def put(self, graph):
+        if isinstance(graph, Graph):
+            contexts = [graph]
+        else:
+            contexts = graph.contexts()
+        for ctx in contexts:
+            identifier = get_identifier(ctx)
+            self.dm.put(ctx)
+        LOG.info("Handler: schedule put(%s)", identifier)
+
+    def append(self, frag):
+        graph = self.get(frag.identifier)
+        if graph is not None:
+            graph += frag
+        else:
+            graph = frag
+        self.put(graph)
+        LOG.info("Handler: schedule append(%s, %s)", frag.identifier)
         
-    def remove(self, *av, **kw):
-        tn = transaction.get()
-        LOG.info("Handler: schedule remove(%s, %s)", repr(av), repr(kw))
-        dh = ORDFDataManager(super(TransactionAwareHandler, self).remove, *av, **kw)
-        tn.join(dh)
+    def remove(self, identifier):
+        self.dm.remove(identifier)
+        LOG.info("Handler: schedule remove(%s)", identifier)
+
+    def _do_put(self, graph):
+        super(TransactionAwareHandler, self).put(graph)
+
+    def _do_remove(self, identifier):
+        super(TransactionAwareHandler, self).remove(identifier)
 
 
-
-class ORDFDataManager(object):
+class ORDFDataManager(threading.local):
 
     implements(ISavepointDataManager)
 
     transaction_manager = transaction.manager
 
-    def __init__(self, func, *args, **kw):
-        self.func = func
-        self.args = args
-        self.kw = kw
+    needs_init = True
+    handler = None
 
-    def funcrepr(self):
-        return "%s.%s(%s)" % (self.func.im_class.__name__, self.func.__name__, ', '.join((', '.join((str(a) for a in self.args)), ', '.join('%s=%s' % (strt(k), str(v)) for (k, w) in self.kw.items()))))
+    def __init__(self, handler):
+        LOG.info("JOIN TRANSACTION: %s", self)
+        self.handler = handler
+
+    def _init(self):
+        if self.needs_init:
+            self.cache = {}
+            self.to_remove = []
+            transaction.get().join(self)
+            self.needs_init = False
+
+    def _reset(self):
+        self.needs_init = True
+        self.cache = None
+        self.to_remove = None
+        # transaction.get().unjoin(self) don't do this here ... might cause troubles in 2 phase commit
+
+    def get(self, identifier):
+        self._init()
+        return self.cache.get(identifier, None)
+
+    def put(self, graph):
+        self._init()
+        self.cache[graph.identifier] = graph
+
+    def remove(self, identifier):
+        self._init()
+        self.to_remove.append(identifier)
 
     def abort(self, transaction):
-        LOG.info("TRANSACTION: abort %s", self.funcrepr())
+        LOG.info("TRANSACTION: abort %s", self)
+        self.tpc_abort(transaction)
     
     # Two-phase commit protocol.  These methods are called by the ITransaction
     # object associated with the transaction being committed.  The sequence
@@ -65,7 +122,7 @@ class ORDFDataManager(object):
         transaction is the ITransaction instance associated with the
         transaction being committed.
         """
-        LOG.info("TRANSACTION: tpc_begin %s", self.funcrepr())
+        LOG.info("TRANSACTION: tpc_begin %s", self)
         # TODO: prepare whatever is necessary to commit transaction
 
     def commit(self, transaction):
@@ -79,8 +136,7 @@ class ORDFDataManager(object):
         errors occur, the data manager should be prepared to make the
         changes persist when tpc_finish is called.
         """
-        LOG.info("TRANSACTION: commit %s", self.funcrepr())
-        # TODO: apply changes to underlying object (not store), make sure transaction will commit
+        LOG.info("TRANSACTION: commit %s", self)
 
     def tpc_vote(self, transaction):
         """Verify that a data manager can commit the transaction.
@@ -91,7 +147,7 @@ class ORDFDataManager(object):
         transaction is the ITransaction instance associated with the
         transaction being committed.
         """
-        LOG.info("TRANSACTION: tpc_vote %s", self.funcrepr())
+        LOG.info("TRANSACTION: tpc_vote %s", self)
         # TODO: last chance checks to see whether we sholud commit or not
 
     def tpc_finish(self, transaction):
@@ -106,9 +162,15 @@ class ORDFDataManager(object):
         database is not expected to maintain consistency; it's a
         serious error.
         """
-        LOG.info("TRANSACTION: tpc_finish %s", self.funcrepr())
+        LOG.info("TRANSACTION: tpc_finish %s", self)
         # ok let's work it out here:
-        self.func(*self.args, **self.kw)
+        for identifier, graph in self.cache.items():
+            LOG.info("                        put: %s", identifier)
+            self.handler._do_put(graph)
+        for identifier in self.to_remove:
+            LOG.info("                        del: %s", identifier)
+            self.handler._do_remove(identifier)
+        self._reset()
 
     def tpc_abort(self, transaction):
         """Abort a transaction.
@@ -122,7 +184,8 @@ class ORDFDataManager(object):
 
         This should never fail.
         """
-        LOG.info("TRANSACTION: tpc_abort %s", self.funcrepr())        
+        LOG.info("TRANSACTION: tpc_abort %s", self)        
+        self._reset()
         # TODO: undo changes, make sure nothing get's written to store
 
     def sortKey(self):
@@ -147,7 +210,7 @@ class ORDFDataManager(object):
 
         this is called by a transaction in in case a saveponit is requested.
         """
-        LOG.info("TRANSACTION: savepoint %s", self.funcrepr())        
+        LOG.info("TRANSACTION: savepoint %s", self)        
         # TODO: return at least a Non RollBack Savepoint here.
 
 
