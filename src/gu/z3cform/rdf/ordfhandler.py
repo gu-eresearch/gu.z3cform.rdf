@@ -75,28 +75,27 @@ class ORDFDataManager(threading.local):
 
     transaction_manager = transaction.manager
 
-    needs_init = True
+    joined = False
     handler = None
 
     def __init__(self, handler):
-        LOG.info("JOIN TRANSACTION: %s", self)
+        self.cache = {}
+        self.to_remove = []
         self.handler = handler
 
     def _init(self):
-        if self.needs_init:
-            self.cache = {}
-            self.to_remove = []
-            transaction.get().join(self)
-            self.needs_init = False
+        tn = transaction.get()
+        self._joined = True
+        LOG.info("JOIN Transaction: %s", tn)
+        tn.join(self)
 
     def _reset(self):
-        self.needs_init = True
-        self.cache = None
-        self.to_remove = None
+        self.joined = False
+        self.cache = {}
+        self.to_remove = []
         # transaction.get().unjoin(self) don't do this here ... might cause troubles in 2 phase commit
 
     def get(self, identifier):
-        self._init()
         return self.cache.get(identifier, None)
 
     def put(self, graph):
