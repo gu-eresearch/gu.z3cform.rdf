@@ -9,13 +9,26 @@
      could do manual zope.component.provideAdapter calls in setUp
      instead -->
 <include package="zope.component" file="meta.zcml" />
+<include package="z3c.form" />
 
     <adapter
         factory=".converter.RDFN3DataConverter"
         />
 
     <adapter
+        factory=".converter.RDFObjectConverter"
+        />
+
+    <adapter
         factory=".datamanager.GraphDataManager"
+        />
+
+    <adapter
+        factory=".datamanager.GraphDataManagerForObjectFields"
+        />
+
+    <adapter
+        factory=".converter.SubformAdapter"
         />
 
     <adapter

@@ -21,4 +21,11 @@
         layer="z3c.form.interfaces.IFormLayer"
         template="groupedselect_hidden.pt" />
 
+  <adapter
+      factory=".object.RDFObjectFieldWidget"
+      for="gu.z3cform.rdf.interfaces.IRDFObjectField
+           z3c.form.interfaces.IFormLayer"
+      />
+
+
 </configure>

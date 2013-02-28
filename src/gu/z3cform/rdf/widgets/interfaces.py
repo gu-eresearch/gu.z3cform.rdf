@@ -11,3 +11,6 @@ from zope.interface import Interface
 
 class IGroupedSelectWidget(Interface):
     pass
+
+class IRDFObjectWidget(Interface):
+    pass
