@@ -76,7 +76,11 @@ class FieldsFromLensMixin(object):
                 lens = formatgraph.classLenses[rtype]
                 break
         if lens is None:
-            lens = formatgraph.classLenses[OWL['Thing']]
+            # search for a lens with no classDomain:
+            for lensuri, lensgraph in formatgraph.lenses.items():
+                if lensgraph.value(lensuri, FRESNEL['classLensDomain']) is None:
+                    lens = lensgraph
+                    break
         return lens
 
     def _getField(self, format, prop, formatid):
