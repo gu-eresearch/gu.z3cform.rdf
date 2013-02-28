@@ -31,4 +31,8 @@
 
     <include package=".widgets"/>
 
+    <class class="rdflib.graph.Graph">
+        <implements interface=".interfaces.IGraph"/>
+    </class>
+
 </configure>

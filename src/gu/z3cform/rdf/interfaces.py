@@ -81,6 +81,12 @@ class IORDF(Interface):
     def getFresnelGraph(self):
         """ return a pre compiled Fresnel implementation """
 
+
+class IGraph(Interface):
+
+    pass
+
+
     
 class IIndividual(Interface):
     """
