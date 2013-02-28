@@ -67,6 +67,15 @@ class IRDFChoiceField(IRDFField):
     """
     pass
 
+class IRDFObjectField(IRDFField):
+    """
+    A field handling rdflib URIRefs
+
+    TODO: might be nice to support RDF Classes, or SPARQL queries here
+          to restrict the set of elements that can be linked.
+    """
+    pass
+
 
 class IORDF(Interface):
     """

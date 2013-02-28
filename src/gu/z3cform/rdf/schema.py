@@ -1,10 +1,11 @@
 from zope.interface import implements
-from zope.schema import Text, List, TextLine, URI, Choice, Set
+from zope.schema import Text, List, TextLine, URI, Choice, Set, Field
 from rdflib import Literal, URIRef
 from rdflib.util import from_n3
 from gu.z3cform.rdf.interfaces import IRDFN3Field, IRDFMultiValueField
 from gu.z3cform.rdf.interfaces import IRDFLiteralField, IRDFLiteralLineField
 from gu.z3cform.rdf.interfaces import IRDFURIRefField, IRDFChoiceField
+from gu.z3cform.rdf.interfaces import IRDFObjectField
 from gu.z3cform.rdf.vocabulary import SparqlVocabularyFactory, SparqlTreeVocabularyFactory
 
 # TODO: for specilised fields like URIRef, or Literal field:
@@ -126,3 +127,87 @@ class RDFGroupedURIChoiceField(Choice):
         kw['vocabulary'] = SparqlTreeVocabularyFactory()(classuri)
         super(RDFGroupedURIChoiceField, self).__init__(**kw)
         self.prop = prop
+
+from zope.schema.interfaces import IObject
+
+class RDFObjectField(Field):
+    # Implement IObject to trigger special handling on z3c.form.form.applyChanges
+    
+    implements(IRDFObjectField, IObject)
+
+    classuri = None
+
+    def __init__(self, prop, **kw): #, classuri, **kw):
+        #self.classuri = classuri
+        self.classuri = kw.pop('classuri', None)
+        super(RDFObjectField, self).__init__(**kw)
+        self.prop = prop
+
+    def _validate(self, value):
+        super(RDFObjectField, self)._validate(value)
+
+        # schema has to be provided by value
+        # if not self.schema.providedBy(value):
+        #     raise SchemaNotProvided
+
+        # # check the value against schema
+        # errors = _validate_fields(self.schema, value)
+        # if errors:
+        #     raise WrongContainedType(errors, self.__name__)
+
+    def set(self, object, value):
+        # Announce that we're going to assign the value to the object.
+        # Motivation: Widgets typically like to take care of policy-specific
+        # actions, like establishing location.
+        # event = BeforeObjectAssignedEvent(value, self.__name__, object)
+        # notify(event)
+        # # The event subscribers are allowed to replace the object, thus we need
+        # # to replace our previous value.
+        value = event.object
+        import ipdb; ipdb.set_trace()
+        super(Object, self).set(object, value)
+
+
+
+
+
+#         <configure
+#     xmlns="http://namespaces.zope.org/zope"
+#     xmlns:z3c="http://namespaces.zope.org/z3c"
+#     i18n_domain="z3c.form">
+
+#   <class class=".object.ObjectWidget">
+#     <require
+#         permission="zope.Public"
+#         interface="z3c.form.interfaces.IObjectWidget"
+#         />
+#   </class>
+
+#   <adapter
+#       factory=".object.ObjectFieldWidget"
+#       for="zope.schema.interfaces.IObject
+#            z3c.form.interfaces.IFormLayer"
+#       />
+
+#   <z3c:widgetTemplate
+#       mode="display"
+#       widget="z3c.form.interfaces.IObjectWidget"
+#       layer="z3c.form.interfaces.IFormLayer"
+#       template="object_display.pt"
+#       />
+
+#   <z3c:widgetTemplate
+#       mode="input"
+#       widget="z3c.form.interfaces.IObjectWidget"
+#       layer="z3c.form.interfaces.IFormLayer"
+#       template="object_input.pt"
+#       />
+
+#   <z3c:widgetTemplate
+#       mode="hidden"
+#       widget="z3c.form.interfaces.IObjectWidget"
+#       layer="z3c.form.interfaces.IFormLayer"
+#       template="object_input.pt"
+#       />
+
+# </configure>
