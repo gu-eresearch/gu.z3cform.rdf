@@ -20,6 +20,7 @@ import logging
 from ordf.graph import Graph
 from ordf.vocab.changeset import ChangeSet
 from ordf.vocab.fresnel import Fresnel
+from ordf.namespace import FRESNEL
 
 #from Products.CMFCore.utils import getToolByName
 
@@ -156,11 +157,27 @@ class FieldsFromLensMixin(object):
             # if sublens != None:
             #     import ipdb; ipdb.set_trace()
             # if sublens -> subgroup? / subform / new fieldprefix
-
             LOG.info("check for field %s", prop)
-            field = self._getField(format, prop, format.identifier)
-            if field is not None:
-                fields.append(field)
+            if sublens is not None:
+                # we render a sub object....
+                #  retrieve graph this prop is pointing and build form
+                # import ipdb; ipdb.set_trace()
+                fieldfactory = resolve("gu.z3cform.rdf.schema.RDFObjectField")
+                label = format.label(prop)
+                fieldkw = {'title': unicode(label),
+                           '__name__': str(prop).replace('-', '_'),
+                           'classuri': sublens.value(sublens.identifier, FRESNEL['classLensDomain']),
+                           'required': False}
+                field = fieldfactory(prop=prop, **fieldkw)
+                if field is not None:
+                    field.lens = sublens  # TODO: make this a parameter to field instance,
+                                          #       optional, and classuri as well, 
+                    fields.append(field)
+            else:
+                # it's a simple field create it
+                field = self._getField(format, prop, format.identifier)
+                if field is not None:
+                    fields.append(field)
         return fields
 
     # this update is taylored to Plone, not sure whether there should be an update here, or in the target framework
