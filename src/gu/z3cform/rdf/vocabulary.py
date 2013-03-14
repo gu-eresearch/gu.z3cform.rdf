@@ -69,7 +69,7 @@ class SparqlTreeVocabularyFactory(object):
         return TreeVocabulary.fromDict(terms)
         
 
-class SparqlVocabularyFactory(object):
+class SparqlInstanceVocabularyFactory(object):
 
     implements(IVocabularyFactory)
 
@@ -89,6 +89,29 @@ class SparqlVocabularyFactory(object):
         terms = []
         for item in r:
             term = SimpleVocabulary.createTerm(item[0], item[0], item[1] or item[0])
+            terms.append(term)
+        return QuerySimpleVocabulary(terms)
+
+
+class SparqlVocabularyFactory(object):
+
+    implements(IVocabularyFactory)
+
+    def __call__(self, context):
+        h = getUtility(IORDF).getHandler()
+        r = h.query(context)
+        # this here would be the natural way when parsing a sparql-xml-result
+        #uris = sorted([item['g'] for item in g])
+
+        # the query should return value, title, token, whereas title and token are optional
+        terms = []
+        for item in r:
+            if len(item) >= 3:
+                term = SimpleVocabulary.createTerm(value=item[0], token=item[2], title=item[1])
+            elif len(item) == 2:
+                term = SimpleVocabulary.createTerm(value=item[0], title=item[1])
+            else:
+                term = SimpleVocabulary.createTerm(value=item[0])
             terms.append(term)
         return QuerySimpleVocabulary(terms)
         

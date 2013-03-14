@@ -6,7 +6,7 @@ from gu.z3cform.rdf.interfaces import IRDFN3Field, IRDFMultiValueField
 from gu.z3cform.rdf.interfaces import IRDFLiteralField, IRDFLiteralLineField
 from gu.z3cform.rdf.interfaces import IRDFURIRefField, IRDFChoiceField
 from gu.z3cform.rdf.interfaces import IRDFObjectField
-from gu.z3cform.rdf.vocabulary import SparqlVocabularyFactory, SparqlTreeVocabularyFactory
+from gu.z3cform.rdf.vocabulary import SparqlTreeVocabularyFactory
 
 # TODO: for specilised fields like URIRef, or Literal field:
 #       in case there is data in the graph, that does not match the type
@@ -112,8 +112,7 @@ class RDFURIChoiceField(Choice):
 
     implements(IRDFChoiceField)
 
-    def __init__(self, prop, classuri, **kw):
-        kw['vocabulary'] = SparqlVocabularyFactory()(classuri)
+    def __init__(self, prop, **kw):
         super(RDFURIChoiceField, self).__init__(**kw)
         self.prop = prop
 

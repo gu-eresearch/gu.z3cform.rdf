@@ -84,15 +84,14 @@ class RDFObjectConverter(BaseDataConverter):
 
         identifier = URIRef(contenturi)
         obj = Graph(identifier=identifier)
-        for prop, data in value.property_objects(value.identifier):
+        for prop, data in value.predicate_objects(value.identifier):
             obj.add((identifier, prop, data))
 
         # for key, data in value.items():
         #     # TODO: can data be a list?
         #     if data is not None:
-        #         obj.add((identifier, URIRef(key), data)) 
+        #         obj.add((identifier, URIRef(key), data))
 
-        
         # name = getIfName(self.field.schema)
         # creator = zope.component.queryMultiAdapter(
         #     (self.widget.context, self.widget.request,

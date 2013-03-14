@@ -19,7 +19,7 @@ import logging
 #from z3c.form.form import EditFrrm as BaseEditForm
 from ordf.graph import Graph
 from ordf.vocab.changeset import ChangeSet
-from ordf.vocab.fresnel import Fresnel
+from gu.z3cform.rdf.fresnel.fresnel import Fresnel
 from ordf.namespace import FRESNEL
 
 #from Products.CMFCore.utils import getToolByName
@@ -37,40 +37,9 @@ class FieldsFromLensMixin(object):
     assumes, that getContent returns a RDF Graph instance.
     '''
 
-    # def getContent(self):
-    #     # TODO: might be nice to implement a RDF-Graph data handler and use graph directly as data source
-    #     #       (makes sublenses easier?)
-    #     # TODO: on remove fo sub object: when to remove sub object?
-    #     #       1. if it's a BNODE it must be removed
-    #     #       2. don't remove it
-    #     rdfobj = IRDFMetadata(self.context, None)
-    #     if rdfobj:
-    #         graphuri = IRDFData(rdfobj).graphuri
-    #     else:
-    #         graphuri = None
-    #     if self._content is None:
-    #         # use get graph uri adapter?
-    #         subject = self.context.subjecturi
-    #         if subject:
-    #             subject = URIRef(subject)
-    #             self._content = self.rdfhandler.get(graphuri)
-    #         else:
-    #             self._content = Graph(identifier=graphuri)
-    #         self._content.contexturi = subject
-    #     return self._content
-
-    # content = property(getContent)
-
-
-
     def getLens(self, individual):
         lens = None
-        # FIXME: getting the compiled Fresnel graph sholud be done in a better way
-        # FIXME: move this into IORDF utility, and also lens discover algorithm
-        formatgraph = getUtility(IORDF).getFresnelGraph()
-        formatgraph = Fresnel(store=formatgraph.store,
-                              identifier=formatgraph.identifier)
-        formatgraph.compile()
+        formatgraph = getUtility(IORDF).getFresnel()
         for rtype in individual.type:
             if rtype in formatgraph.classLenses:
                 lens = formatgraph.classLenses[rtype]
@@ -81,90 +50,19 @@ class FieldsFromLensMixin(object):
                 if lensgraph.value(lensuri, FRESNEL['classLensDomain']) is None:
                     lens = lensgraph
                     break
-        return lens
-
-    def _getField(self, format, prop, formatid):
-        # TODO: pick correct language
-        label = format.label(prop)
-        fielddef = format.value(formatid, Z3C.field)
-        # TODO: the format does not know about the sub object field... :(
-        # fieldname = format.value(fielddef, Z3C.fieldName)
-        fieldname = format.value(formatid, Z3C.fieldName)
-        if fieldname is None:
-            # FIXME: this here ignores undefined fields
-            LOG.warn("ignoring field %s for %s", prop, self.getContent().identifier)
-            return None
-        # if there is no fieldName, we could look up rdf:type for property ... (owl:DataTypeProperty, owl;ObjectProperty?, rdfs:Property -> need to check data)
-        # TODO: get field type: check rdfs:range for this property
-
-        # TODO: interesting display stuff:
-        #       fresnel:value, valueFormat, 
-
-        # build field parameters
-        fieldkw = {'title': unicode(label),
-                   '__name__': str(prop).replace('-', '_'), #  FIXME: check to use valid python name?
-        # have to replace all - in names with underscores. z3c.forms assumes - separate name parts and might convert them to '.' if necessary. if '-' is part of actual name and not separataor, then the name will no longer match after all '-' are replaced by '.'
-                   'required': False}  # FIXME: should come from lens
-
-        # TODO: set fieldkw['rdftype'] if defined
-
-        # determine cardinality of property ....
-        #    owl:min/max/cardinality
-        #    fieldtype?, propertyFormat?
-        # for now let fieldtype define it, and use z3c:value_type as in python
-        # TODO: support things like, vocabularies, sparql queries, etc...
-        fieldfactory = resolve(fieldname)
-        if ICollection.implementedBy(fieldfactory):
-            # determine value_type
-            #value_type = format.value(fielddef, Z3C.valueType)
-            value_type = format.value(formatid, Z3C.valueType)
-            value_type_factory = resolve(value_type)
-            # FIXME: this is a special case .... need to make this more generic; e.g. let IORDF tool handle this
-            #        or find another way to create vocabularies or choice fields via rdf.
-            classuri = format.value(formatid, Z3C.valueClass)
-            subfieldkw = fieldkw.copy()
-            del subfieldkw['title']  # remove title from subfield.
-            if classuri is not None:
-                value_type = value_type_factory(prop=prop,
-                                                classuri=classuri,
-                                                **subfieldkw)
-            else:
-                value_type = value_type_factory(prop=prop, **subfieldkw)
-            fieldkw.update({'value_type': value_type})
-        else:
-            # FIXME: same special case as above
-            # we might thave a choice field here without a surrounding list
-            classuri = format.value(formatid, Z3C.valueClass)
-            if classuri is not None:
-                fieldkw['classuri'] = classuri
-                
-        LOG.info("Add field %s for %s", prop, self.getContent().identifier)
-        field = fieldfactory(prop=prop,
-                             **fieldkw)
-
-        widgetfactory = format.value(formatid, Z3C.widgetFactory)
-        if widgetfactory is not None:
-            field.widgetFactory = resolve(widgetfactory)
-
-
-        # field = RDFMultiValueField(__name__=str(prop),
-        #                            prop=prop,
-        #                            value_type=RDFN3Field(prop=prop, **fieldkw),
-        #                            #**fieldkw
-        # )
-        return field
+        # FIXME: make sure to select proper lens based on group, priority, whatever
+        return lens[0]
 
     def _getFieldsFromFresnelLens(self, lens, graph, resource):
         fields = []
         for prop, sublens, format in lens.properties(graph, resource, sorted=True):
-            #LOG.info("%s: %s %s" % (prop, sublens, format))
-            # if sublens != None:
-            #     import ipdb; ipdb.set_trace()
-            # if sublens -> subgroup? / subform / new fieldprefix
             LOG.info("check for field %s", prop)
+            if format is None:
+                LOG.info("Ignoring field %s . No format", prop)
+                continue
             if sublens is not None:
                 # we render a sub object....
-                #  retrieve graph this prop is pointing and build form
+                #  retrieve graph this prop is pointing to and build form
                 # import ipdb; ipdb.set_trace()
                 fieldfactory = resolve("gu.z3cform.rdf.schema.RDFObjectField")
                 label = format.label(prop)
@@ -179,7 +77,7 @@ class FieldsFromLensMixin(object):
                     fields.append(field)
             else:
                 # it's a simple field create it
-                field = self._getField(format, prop, format.identifier)
+                field = format.getField(prop)
                 if field is not None:
                     fields.append(field)
         return fields
