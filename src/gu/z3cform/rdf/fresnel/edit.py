@@ -48,7 +48,7 @@ class FieldsFromLensMixin(object):
             # search for a lens with no classDomain:
             for lensuri, lensgraph in formatgraph.lenses.items():
                 if lensgraph.value(lensuri, FRESNEL['classLensDomain']) is None:
-                    lens = lensgraph
+                    lens = [lensgraph]
                     break
         # FIXME: make sure to select proper lens based on group, priority, whatever
         return lens[0]
