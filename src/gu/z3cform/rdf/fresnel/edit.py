@@ -1,121 +1,127 @@
-from zope.interface import Interface
-from z3c.form import field
-from zope import schema
-from zope.schema.interfaces import ICollection
+import logging
+
 from gu.z3cform.rdf.interfaces import IIndividual
 from gu.z3cform.rdf.interfaces import IORDF
-from gu.z3cform.rdf.schema import RDFN3Field, RDFMultiValueField
-from zope.dottedname.resolve import resolve
-
-
-from rdflib import URIRef, RDF, Namespace, OWL
-from zope.component import getUtility
-# from org.ausnc.rdf.behavior.interfaces import IRDFMetadata
-# from org.ausnc.rdf.interfaces import IORDF, IRDFData
-# from org.ausnc.rdf.fresnel.field import RDFLiteralField, RDFMultiValueField
-# from org.ausnc.rdf.fresnel.field import RDFLiteralLineField, RDFURIRefField
-# from org.ausnc.rdf.fresnel.field import RDFN3Field
-import logging
-#from z3c.form.form import EditFrrm as BaseEditForm
-from ordf.graph import Graph
-from ordf.vocab.changeset import ChangeSet
-from gu.z3cform.rdf.fresnel.fresnel import Fresnel
 from ordf.namespace import FRESNEL
-
-#from Products.CMFCore.utils import getToolByName
+from rdflib import Namespace
+from z3c.form import field
+from zope.component import getUtility
+from zope.dottedname.resolve import resolve
+from gu.z3cform.rdf.fresnel.fresnel import Lens, PropertyGroup
 
 LOG = logging.getLogger(__name__)
-
-#FORMAT = Namespace(u"http://aperture.semanticdesktop.org/ontology/sourceformat#")
 Z3C = Namespace(u"http://namespaces.zope.org/z3c/form#")
 
-# FIXME: turn sublenses into subforms? (multisubforms? ... the only way to handle anon-nodes properly, which stil might make troubles when matching data ... e.g.: leave unrecognised fields untouched)
-#   however ... need some consistent handling for BNodes ... e.g. display only?
-# FIXME: create view / edit / create / browse forms for data not attached to content.
-class FieldsFromLensMixin(object):
-    '''
-    assumes, that getContent returns a RDF Graph instance.
-    '''
 
-    def getLens(self, individual):
-        lens = None
-        formatgraph = getUtility(IORDF).getFresnel()
-        for rtype in individual.type:
-            if rtype in formatgraph.classLenses:
-                lens = formatgraph.classLenses[rtype]
+def getLens(individual):
+    lens = None
+    formatgraph = getUtility(IORDF).getFresnel()
+    for rtype in individual.type:
+        if rtype in formatgraph.classLenses:
+            lens = formatgraph.classLenses[rtype]
+            break
+    if lens is None:
+        # search for a lens with no classDomain:
+        for lensuri, lensgraph in formatgraph.lenses.items():
+            if lensgraph.value(lensuri, FRESNEL['classLensDomain']) is None:
+                lens = [lensgraph]
                 break
-        if lens is None:
-            # search for a lens with no classDomain:
-            for lensuri, lensgraph in formatgraph.lenses.items():
-                if lensgraph.value(lensuri, FRESNEL['classLensDomain']) is None:
-                    lens = [lensgraph]
-                    break
-        # FIXME: make sure to select proper lens based on group, priority, whatever
-        return lens[0]
+    # FIXME: make sure to select proper lens based on group, priority,
+    #        whatever
+    return lens[0]
 
-    def _getFieldsFromFresnelLens(self, lens, graph, resource):
-        fields = []
-        for prop, sublens, format in lens.properties(graph, resource, sorted=True):
-            LOG.info("check for field %s", prop)
-            if format is None:
-                LOG.info("Ignoring field %s . No format", prop)
-                continue
-            if sublens is not None:
+
+def getFieldsFromFresnelLens(lens, graph, resource):
+    fields = []
+    groups = []
+    for prop, sublens, format in lens.properties(graph, resource,
+                                                 sorted=True):
+        LOG.info("check for field %s", prop)
+        if sublens is not None:
+            if isinstance(sublens, PropertyGroup):
+                _, subfields = getFieldsFromFresnelLens(sublens, graph,
+                                                        resource)
+
+                g = RDFGroupFactory(str(sublens.identifier).replace('-', '_'),
+                                    field.Fields(*subfields),
+                                    sublens.label(sublens.identifier), None)
+                groups.append(g)
+
+            elif isinstance(sublens, Lens):
                 # we render a sub object....
                 #  retrieve graph this prop is pointing to and build form
                 # import ipdb; ipdb.set_trace()
                 fieldfactory = resolve("gu.z3cform.rdf.schema.RDFObjectField")
                 label = format.label(prop)
-                fieldkw = {'title': unicode(label),
-                           '__name__': str(prop).replace('-', '_'),
-                           'classuri': sublens.value(sublens.identifier, FRESNEL['classLensDomain']),
-                           'required': False}
-                field = fieldfactory(prop=prop, **fieldkw)
-                if field is not None:
-                    field.lens = sublens  # TODO: make this a parameter to field instance,
-                                          #       optional, and classuri as well, 
-                    fields.append(field)
-            else:
-                # it's a simple field create it
-                field = format.getField(prop)
-                if field is not None:
-                    fields.append(field)
-        return fields
+                fieldkw = {
+                    'title': unicode(label),
+                    '__name__': str(prop).replace('-', '_'),
+                    'classuri': sublens.value(sublens.identifier,
+                                              FRESNEL['classLensDomain']),
+                    'required': False}
+                fieldinst = fieldfactory(prop=prop, **fieldkw)
+                if fieldinst is not None:
+                    fieldinst.lens = sublens  # TODO: make this a parameter to
+                                              #       field instance, optional,
+                                              #       and classuri as well,
+                    fields.append(fieldinst)
+        if format is None:
+            LOG.info("Ignoring field %s . No format", prop)
+            continue
+        else:
+            # it's a simple field create it
+            fieldinst = format.getField(prop)
+            if fieldinst is not None:
+                fields.append(fieldinst)
+    return tuple(groups), fields
 
-    # this update is taylored to Plone, not sure whether there should be an update here, or in the target framework
-    # def update(self):
-    #     rdftool = getUtility(IORDF)
-    #     self.formatgraph = rdftool.getFresnelGraph()
-    #     self.rdfhandler = rdftool.getHandler()
-    #     super(EditForm, self).update()
 
-        
+# FIXME: turn sublenses into subforms? (multisubforms? ... the only way to
+#        handle anon-nodes properly, which stil might make troubles when
+#        matching data ... e.g.: leave unrecognised fields untouched)
+#        however ... need some consistent handling for BNodes ... e.g. display
+#        only?
+# FIXME: create view / edit / create / browse forms for data not attached to
+#        content.
+class FieldsFromLensMixin(object):
+    '''
+    assumes, that getContent returns a RDF Graph instance.
+    '''
+
     def updateFields(self):
         # TODO: do I have to call super here?
+        #import ipdb; ipdb.set_trace()
+        try:
+            # call our superclass updateFields if there is any
+            super(FieldsFromLensMixin, self).updateFields()
+        except AttributeError:
+            pass
         individual = IIndividual(self.getContent())
-        lens = self.getLens(individual)
+        lens = getLens(individual)
         fields = []
         if lens is not None:
-            fields = self._getFieldsFromFresnelLens(lens, individual.graph, individual.identifier)
-        self.fields = field.Fields(*fields)
-        # TODO: apply widgetfactories here?
-        # FIXME: this is an ugly hack to pass the widgetFactory through. ... theschema fieldsholud not be bothered with widgets at all
-        for z3cfield in self.fields.values():
-            if hasattr(z3cfield.field, 'widgetFactory'):
-                z3cfield.widgetFactory = z3cfield.field.widgetFactory
-        
+            groups, fields = getFieldsFromFresnelLens(lens, individual.graph,
+                                                      individual.identifier)
+        if self.fields is not None:
+            self.fields += field.Fields(*fields)
+        else:
+            self.fields = field.Fields(*fields)
+
+        if hasattr(self, 'groups'):
+            self.groups += groups
+        # TODO: if group list is not empty, remove all fields from main fileds
+        #       and add them as new first group. (if not disabled)
 
     def applyChanges(self, data):
-        # TODO: move this out to edit view, so that this class can be safely re-used in display forms
+        # TODO: move this out to edit view, so that this class can be safely
+        #       re-used in display forms
         from zope.security.management import getInteraction
         uname = "Anonymous"
         try:
             interaction = getInteraction()
             #import ipdb; ipdb.set_trace()
-        except Exception, e:
+        except Exception:
             pass
-        
-        
         # # get current username:
         # #  other ways via SecurityManager or plone_context_state view
         # # from AccessControl import getSecurityManager
@@ -126,13 +132,13 @@ class FieldsFromLensMixin(object):
         # uname = mt.getAuthenticatedMember().getUserName()
         # #import pdb; pdb.set_trace() # check for changeset generation der
 
-
         #######################################################################
         ## way 1 ... use ord.handler.context ...  ordf assumes, that graphs are
         ##      rather small, and cover mostly only the data about one
         ##      individual.  this way it is easy to load and compare complete
         ##      graphs. (does currently not fit into our model).
-        ## TODO: coed below does not work entirely correct. changecontexts retrieve the original themselves and
+        ## TODO: coed below does not work entirely correct. changecontexts
+        ##       retrieve the original themselves and
         ##       assume only updates graphs are being added
         #######################################################################
         # get a change context from the handler
@@ -145,20 +151,63 @@ class FieldsFromLensMixin(object):
         cc.add(self.getContent())
         # send changeset
         cc.commit()
-        # TODO: instead of commit ... put ChangeSet into Datamanager, which will commit at end of transaction.
-        #       plone specific behaviour => revised: let handler do transaction handling
+        # TODO: instead of commit ... put ChangeSet into Datamanager, which
+        #       will commit at end of transaction.
+        #       plone specific behaviour => revised: let handler do transaction
+        #       handling
         # TODO: probably have to re-update fields, in case rdf:type has changed
 
         #######################################################################
         ## way 2 ... generate changeset manually and send it to store
-        ##      
+        ##
         #######################################################################
         # olddata = Graph(identifier=self.content.identifier)
         # olddata += self.content
         # result = super(EditForm, self).applyChanges(data)
-        # cs = ChangeSet(uname, 'edited via web interface')  
-        # cs.diff(olddata, self.content)  # TODO returns number of changes... log it?
+        # cs = ChangeSet(uname, 'edited via web interface')
+        # cs.diff(olddata, self.content)  # TODO returns number of changes..
         # cs.commit()  # freeze the changeset and add changeset metadat
         # # send changeset over wire
 
         return result
+
+
+#from plone.z3cform.fieldsets import group
+from z3c.form import group
+
+
+class RDFGroup(FieldsFromLensMixin, group.Group):
+
+    def getLens(self, individual):
+        if self.lens is not None:
+            return self.lens
+        return getLens(individual)
+
+    def getContent(self):
+        # TODO: make this more versatile.
+        #       currently the context is supplied by parent form
+        return self.__parent__.getContentGraph()
+        #return self.__parent__.getContent()
+
+
+from zope.interface import implements
+from plone.z3cform.fieldsets.interfaces import IGroupFactory
+
+
+class RDFGroupFactory(object):
+    implements(IGroupFactory)
+
+    def __init__(self, __name__, fields, label=None, description=None):
+        self.__name__ = __name__
+        self.fields = fields
+
+        self.label = label or __name__
+        self.description = description
+
+    def __call__(self, context, request, parentForm):
+        g = RDFGroup(context, request, parentForm)
+        g.__name__ = self.__name__
+        g.label = self.label
+        g.description = self.description
+        g.fields = self.fields
+        return g
