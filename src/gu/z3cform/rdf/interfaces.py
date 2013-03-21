@@ -49,6 +49,20 @@ class IRDFLiteralLineField(IRDFField):
                        required=False)
 
 
+class IRDFDateField(IRDFField):
+    """
+
+    Class: IRDFDateField
+
+    [IRDFDateField description]
+    TODO: check whether this is better be solved via a
+    typed IRDFLiteralLineField (rdflib would support casting between string and actual python field value)
+
+    Extends: IRDFField
+    """
+    pass
+
+
 class IRDFURIRefField(IRDFField):
     """
     A field handling rdflib URIRefs

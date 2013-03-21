@@ -1,16 +1,19 @@
 from zope.interface import implements
-from zope.schema import Text, List, TextLine, URI, Choice, Set, Field
+from zope.schema import Text, List, TextLine, URI, Choice, Set, Field, Date
 from rdflib import Literal, URIRef
 from rdflib.util import from_n3
 from gu.z3cform.rdf.interfaces import IRDFN3Field, IRDFMultiValueField
 from gu.z3cform.rdf.interfaces import IRDFLiteralField, IRDFLiteralLineField
 from gu.z3cform.rdf.interfaces import IRDFURIRefField, IRDFChoiceField
-from gu.z3cform.rdf.interfaces import IRDFObjectField
+from gu.z3cform.rdf.interfaces import IRDFObjectField, IRDFDateField
 from gu.z3cform.rdf.vocabulary import SparqlTreeVocabularyFactory
+from ordf.namespace import XSD
 
 # TODO: for specilised fields like URIRef, or Literal field:
 #       in case there is data in the graph, that does not match the type
-#       leave the data untouched (don't display, and don't change/edit/delete if possible)
+#       leave the data untouched (don't display, and don't change/edit/delete
+#       if possible)
+
 
 class RDFN3Field(Text):
     """
@@ -27,9 +30,11 @@ class RDFN3Field(Text):
 
     def __init__(self, prop, **kw):
         super(RDFN3Field, self).__init__(**kw)
-        # TODO: should type chek prop here. (how is z3c doing this? with FieldProperty?)
+        # TODO: should type chek prop here. (how is z3c doing this? with
+        #       FieldProperty?)
         #       -> also check if __name__ is useful in case of ordf's ORM
-        #       -> name might also be used as ID combined with default namespace
+        #       -> name might also be used as ID combined with default
+        #          namespace
         self.prop = prop
 
     def fromUnicode(self, str):
@@ -51,7 +56,8 @@ class RDFLiteralField(Text):
         self.rdflang = rdflang
 
     def fromUnicode(self, str):
-        # TODO: ensure only rdftye or rdflang is given and use these values in fromUnicode
+        # TODO: ensure only rdftye or rdflang is given and use these values in
+        #       fromUnicode
         value = Literal(str)
         self.validate(value)
         return value
@@ -65,7 +71,8 @@ class RDFLiteralLineField(TextLine):
 
     def __init__(self, prop, rdftype=None, rdflang=None, **kw):
         super(RDFLiteralLineField, self).__init__(**kw)
-        # TODO: ensure only rdftye or rdflang is given and use these values in fromUnicode
+        # TODO: ensure only rdftye or rdflang is given and use these values in
+        #       fromUnicode
         self.prop = prop
         self.rdftype = rdftype
         self.rdflang = rdflang
@@ -74,7 +81,41 @@ class RDFLiteralLineField(TextLine):
         value = Literal(str)
         self.validate(value)
         return value
-    
+
+
+class RDFDateField(Date):
+
+    implements(IRDFDateField)
+
+    def __init__(self, prop, **kw):
+        super(RDFDateField, self).__init__(**kw)
+        # TODO: ensure only rdftye or rdflang is given and use these values in
+        #       fromUnicode
+        self.prop = prop
+        self.rdftype = XSD['date']
+        self.rdflang = None
+
+    def fromUnicode(self, str):
+        value = Literal(str, datatype=self.rdftype)
+        self.validate(value)
+        return value
+
+    def validate(self, value):
+        # TODO: fix this validation. is it really necessary to convert again to a python object?
+        val = value.toPython()
+        return super(RDFDateField, self).validate(val)
+
+    def get(self, object):
+        import ipdb; ipdb.set_trace()
+        return super(RDFDateField, self).get(object)
+
+    def query(self, object, default=None):
+        import ipdb; ipdb.set_trace()
+        return super(RDFDateField, self).query(object, default)
+
+    def set(self, object, value):
+        import ipdb; ipdb.set_trace()
+        super(RDFDateField, self).set(object, value)
 
 
 class RDFURIRefField(URI):
@@ -85,9 +126,11 @@ class RDFURIRefField(URI):
 
     def __init__(self, prop, **kw):
         super(RDFURIRefField, self).__init__(**kw)
-        # TODO: should type chek prop here. (how is z3c doing this? with FieldProperty?)
+        # TODO: should type chek prop here. (how is z3c doing this? with
+        #       FieldProperty?)
         #       -> also check if __name__ is useful in case of ordf's ORM
-        #       -> name might also be used as ID combined with default namespace
+        #       -> name might also be used as ID combined with default
+        #          namespace
         self.prop = prop
 
     def fromUnicode(self, str):
@@ -102,9 +145,11 @@ class RDFMultiValueField(List):
 
     def __init__(self, prop, **kw):
         super(RDFMultiValueField, self).__init__(**kw)
-        # TODO: should type chek prop here. (how is z3c doing this? with FieldProperty?)
+        # TODO: should type chek prop here. (how is z3c doing this? with
+        #       FieldProperty?)
         #       -> also check if __name__ is useful in case of ordf's ORM
-        #       -> name might also be used as ID combined with default namespace
+        #       -> name might also be used as ID combined with default
+        #          namespace
         self.prop = prop
 
 
@@ -118,7 +163,9 @@ class RDFURIChoiceField(Choice):
 
 
 class RDFGroupedURIChoiceField(Choice):
-    # FIXME: have a separate class now for tree vocabulary backed field ... can register default widget for it. (don't need widgetFactory in fresnel defs.)
+    # FIXME: have a separate class now for tree vocabulary backed field ...
+    #        can register default widget for it. (don't need widgetFactory
+    #        in fresnel defs.)
 
     implements(IRDFChoiceField)
 
@@ -129,14 +176,15 @@ class RDFGroupedURIChoiceField(Choice):
 
 from zope.schema.interfaces import IObject
 
+
 class RDFObjectField(Field):
-    # Implement IObject to trigger special handling on z3c.form.form.applyChanges
-    
+    # Implement IObject to trigger special handling on
+    # z3c.form.form.applyChanges
     implements(IRDFObjectField, IObject)
 
     classuri = None
 
-    def __init__(self, prop, **kw): #, classuri, **kw):
+    def __init__(self, prop, **kw):  # classuri, **kw):
         #self.classuri = classuri
         self.classuri = kw.pop('classuri', None)
         super(RDFObjectField, self).__init__(**kw)
@@ -160,11 +208,11 @@ class RDFObjectField(Field):
         # actions, like establishing location.
         # event = BeforeObjectAssignedEvent(value, self.__name__, object)
         # notify(event)
-        # # The event subscribers are allowed to replace the object, thus we need
-        # # to replace our previous value.
-        value = event.object
+        # # The event subscribers are allowed to replace the object, thus we
+        # # need to replace our previous value.
+        #value = event.object
         import ipdb; ipdb.set_trace()
-        super(Object, self).set(object, value)
+        super(RDFObjectField, self).set(object, value)
 
 
 

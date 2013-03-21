@@ -1,14 +1,18 @@
+from datetime import date
 from zope.component import adapts, getUtility
 from z3c.form.interfaces import IWidget, NO_VALUE, IDataManager, IDataConverter
 from z3c.form.converter import BaseDataConverter
 from rdflib.util import from_n3
-from rdflib import URIRef
+from rdflib import URIRef, Literal
 from ordf.graph import Graph, _Graph
+from ordf.namespace import XSD
 from gu.z3cform.rdf.interfaces import IRDFN3Field, IRDFObjectField
 # FIXME: this is probably a circular import ...
 from gu.z3cform.rdf.widgets.interfaces import IRDFObjectWidget
 from gu.z3cform.rdf.fresnel.edit import FieldsFromLensMixin
 from z3c.form.form import applyChanges
+# maybe use own exceptions here?
+from collective.z3cform.datetimewidget.interfaces import DateValidationError
 
 
 class RDFN3DataConverter(BaseDataConverter):
@@ -34,6 +38,34 @@ class RDFN3DataConverter(BaseDataConverter):
         if value is None:
             return None
         return value.n3()
+
+class RDFDateDataConverter(BaseDataConverter):
+    '''
+    converts between literal date field and collective.z3cform.datetimewidget .
+
+    # TODO: this converter can be optimized. it only needs to reformat the 3 supplied values.
+    '''
+    
+    def toWidgetValue(self, value):
+        if value is self.field.missing_value:
+            return ('', '', '')
+        value = value.toPython()
+        return (value.year, value.month, value.day)
+
+    def toFieldValue(self, value):
+        for val in value:
+            if not val:
+                return self.field.missing_value
+
+        try:
+            value = map(int, value)
+        except ValueError:
+            raise DateValidationError
+        try:
+            value = date(*value)
+        except ValueError:
+            raise DateValidationError
+        return Literal(value, datatype=XSD['date'])
 
 import zope.schema.interfaces
 

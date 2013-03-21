@@ -53,6 +53,7 @@ REQUIRES = [
         'rdflib',
         'rdflib-sparql',
         'z3c.formwidget.query',
+        'collective.z3cform.datetimewidget',
         ]
 
 #if sys.version_info < (2, 7):
