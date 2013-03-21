@@ -7,7 +7,7 @@ from rdflib import Namespace
 from z3c.form import field
 from zope.component import getUtility
 from zope.dottedname.resolve import resolve
-from gu.z3cform.rdf.fresnel.fresnel import Lens, PropertyGroup
+from gu.z3cform.rdf.fresnel.fresnel import Lens, PropertyGroup, ID_CHAR_MAP
 
 LOG = logging.getLogger(__name__)
 Z3C = Namespace(u"http://namespaces.zope.org/z3c/form#")
@@ -42,7 +42,7 @@ def getFieldsFromFresnelLens(lens, graph, resource):
                 _, subfields = getFieldsFromFresnelLens(sublens, graph,
                                                         resource)
 
-                g = RDFGroupFactory(str(sublens.identifier).replace('-', '_'),
+                g = RDFGroupFactory(str(sublens.identifier).translate(ID_CHAR_MAP),
                                     field.Fields(*subfields),
                                     sublens.label(sublens.identifier), None)
                 groups.append(g)
@@ -55,7 +55,7 @@ def getFieldsFromFresnelLens(lens, graph, resource):
                 label = format.label(prop)
                 fieldkw = {
                     'title': unicode(label),
-                    '__name__': str(prop).replace('-', '_'),
+                    '__name__': str(prop).translate(ID_CHAR_MAP),
                     'classuri': sublens.value(sublens.identifier,
                                               FRESNEL['classLensDomain']),
                     'required': False}
@@ -111,6 +111,13 @@ class FieldsFromLensMixin(object):
             self.groups += groups
         # TODO: if group list is not empty, remove all fields from main fileds
         #       and add them as new first group. (if not disabled)
+        
+        # apply widgetFactories here
+        for g in (self, ) + self.groups:
+            for f in g.fields.values():
+                if hasattr(f.field, 'widgetFactory'):
+                    LOG.info('apply costum widgetFactory %s to for field %s', str(f.field.widgetFactory), f.field.__name__)
+                    f.widgetFactory = f.field.widgetFactory
 
     def applyChanges(self, data):
         # TODO: move this out to edit view, so that this class can be safely

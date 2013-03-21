@@ -1,5 +1,6 @@
 #
 # Fresnel implementation to support z3c fresnel extensions.
+import string
 from ordf.graph import Graph
 from ordf.collection import Collection
 from ordf.namespace import FRESNEL, RDF
@@ -8,6 +9,10 @@ from gu.z3cform.rdf.vocabulary import SparqlInstanceVocabularyFactory
 from gu.z3cform.rdf.vocabulary import SparqlVocabularyFactory
 
 Z3C = Namespace(u'http://namespaces.zope.org/z3c/form#')
+
+# TODO: this is used toconvert URLs to valid html-id's. maybe use proper
+#        url namespace prefix and replace only tho colon with _
+ID_CHAR_MAP = string.maketrans(':/-#.', '_____')
 
 
 class Fresnel(Graph):
@@ -278,8 +283,9 @@ class Field(Graph):
         return field
 
     def getField(self, prop, label, required=False):
+        # this returns a schema field. not a z3c.form.field.Field
         fieldkw = {'title': unicode(label),
-                   '__name__': str(prop).replace('-', '_'),
+                   '__name__': str(prop).translate(ID_CHAR_MAP),
                    # FIXME: check to use valid python name?
                    # have to replace all - in names with underscores. z3c.forms
                    # assumes - separate name parts and might convert them to .
