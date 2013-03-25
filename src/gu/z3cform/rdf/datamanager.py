@@ -3,33 +3,37 @@ from zope.schema.interfaces import IField, ICollection
 from zope.component import adapts, getUtility
 from z3c.form.interfaces import NO_VALUE
 from z3c.form.datamanager import DataManager
-from gu.z3cform.rdf.interfaces import IORDF, IRDFObjectField, IGraph
+from gu.z3cform.rdf.interfaces import IORDF, IRDFObjectField, IGraph, IRDFField
+from gu.repository.content.interfaces import IRepositoryMetadata
+from plone.uuid.interfaces import IUUIDAware
 
 
 class GraphDataManager(DataManager):
     # FIXME... for now this works if the context is a graph, but it won't allow us to mix stuff'
     # for now this is ok, and maybe we can mix stuff with subforms :)
 
-    adapts(IGraph, IField)
+    adapts(IUUIDAware, IRDFField)
 
     def __init__(self, context, field):
         # if (not isinstance(data, Graph)):
         #     raise ValueError("Date must be a rdflib Graph instance: %s" % type(data))
         if not isinstance(context, Graph):
             # TODO: get graph from somewhere
-            pass
+            self.graph = IRepositoryMetadata(context)
         else:
+            import ipdb; ipdb.set_trace()
             self.graph = context
             # FIXME: here we assume, the ordf storage model, that the Graph URI is the same as the individual URI
-            self.subj = context.identifier
+        self.subj = self.graph.identifier
         self.field = field
         # TODO: think ... this is slightly different to z3c.form fields, where field.__name__ is being used.
         #       __name__ might be useful in case of ORM.. .(but would I then use an N3Field or this datamanager at all?)
         if not hasattr(field, 'prop'):
+            import ipdb; ipdb.set_trace()
             # TODO: shall we use field.__name__ with a default url-prefix?
             self.prop = URIRef('http://fixeme.com/noprop')
         else:
-            self.prop = field.prop
+            self.prop = field.prop        
 
     def get(self):
         """Get the value.
@@ -86,7 +90,7 @@ class GraphDataManager(DataManager):
 
 class GraphDataManagerForObjectFields(GraphDataManager):
 
-    adapts(IGraph, IRDFObjectField)
+    adapts(IUUIDAware, IRDFObjectField)
     
     def get(self):
         """Get the value.

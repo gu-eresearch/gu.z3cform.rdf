@@ -8,6 +8,7 @@ from z3c.form import field
 from zope.component import getUtility
 from zope.dottedname.resolve import resolve
 from gu.z3cform.rdf.fresnel.fresnel import Lens, PropertyGroup, ID_CHAR_MAP
+from gu.repository.content.interfaces import IRepositoryMetadata
 
 LOG = logging.getLogger(__name__)
 Z3C = Namespace(u"http://namespaces.zope.org/z3c/form#")
@@ -96,8 +97,12 @@ class FieldsFromLensMixin(object):
             super(FieldsFromLensMixin, self).updateFields()
         except AttributeError:
             pass
-        individual = IIndividual(self.getContent())
+
+        graph = IRepositoryMetadata(self.context)
+        individual = IIndividual(graph)
         lens = getLens(individual)
+        LOG.info('individual types: %s', individual.type)
+        LOG.info('picked lens: %s', lens)
         fields = []
         if lens is not None:
             groups, fields = getFieldsFromFresnelLens(lens, individual.graph,
@@ -140,7 +145,7 @@ class FieldsFromLensMixin(object):
         # #import pdb; pdb.set_trace() # check for changeset generation der
 
         #######################################################################
-        ## way 1 ... use ord.handler.context ...  ordf assumes, that graphs are
+        ## way 1 ... use ordf.handler.context ...  ordf assumes, that graphs are
         ##      rather small, and cover mostly only the data about one
         ##      individual.  this way it is easy to load and compare complete
         ##      graphs. (does currently not fit into our model).
@@ -150,14 +155,26 @@ class FieldsFromLensMixin(object):
         #######################################################################
         # get a change context from the handler
         # TODO: maybe capture reason in form?
-        rdfhandler = getUtility(IORDF).getHandler()
-        cc = rdfhandler.context(user=uname, reason="edited via web interface")
+        
+        ####### TODO remove this stuff here, the transaction handler takes care of changeset generation
+        #import ipdb; ipdb.set_trace()
+        #rdfhandler = getUtility(IORDF).getHandler()
+        #cc = rdfhandler.context(user=uname, reason="edited via web interface")
+        #cc.add(IRepositoryMetadata(self.context))
         # make changes
         result = super(FieldsFromLensMixin, self).applyChanges(data)
         # store modified data
-        cc.add(self.getContent())
+        # TODO: check result whether it's worth doing all this
+        # TODO: maybe mark graph as dirty (zodb way) and process dirty graphs in transaction handler
+        # TODO: do difference processing in transaction and decide there? (possibly expensive)
+        graph = IRepositoryMetadata(self.context)
+        rdfhandler = getUtility(IORDF).getHandler()
+        rdfhandler.put(graph)
+        #cc.add(graph)
         # send changeset
-        cc.commit()
+        #cc.commit()
+        #
+        #
         # TODO: instead of commit ... put ChangeSet into Datamanager, which
         #       will commit at end of transaction.
         #       plone specific behaviour => revised: let handler do transaction
@@ -193,8 +210,8 @@ class RDFGroup(FieldsFromLensMixin, group.Group):
     def getContent(self):
         # TODO: make this more versatile.
         #       currently the context is supplied by parent form
-        return self.__parent__.getContentGraph()
-        #return self.__parent__.getContent()
+        #return self.__parent__.getContentGraph()
+        return self.__parent__.getContent()
 
 
 from zope.interface import implements
