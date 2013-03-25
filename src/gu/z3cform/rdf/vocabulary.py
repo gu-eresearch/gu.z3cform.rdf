@@ -1,4 +1,4 @@
-from zope.schema.interfaces import IVocabularyFactory
+from zope.schema.interfaces import IVocabularyFactory, ITitledTokenizedTerm
 from zope.interface import implements
 from zope.component import getUtility
 from gu.z3cform.rdf.interfaces import IORDF
@@ -7,12 +7,22 @@ from z3c.formwidget.query.interfaces import IQuerySource
 from rdflib.namespace import split_uri
 from collections import defaultdict
 
+
 class QuerySimpleVocabulary(SimpleVocabulary):
 
     implements(IQuerySource)
 
+    def cmp(self, term, query):
+        # ajax search widget does a search on this vocabulary,
+        # if we have titled terms, we have to compare against the title
+        # otherwise use the value.
+        if ITitledTokenizedTerm.providedBy(term):
+            return query in term.title.lower()
+        return query in term.value.lower()
+
     def search(self, query_string):
-        return (term for term in self if query_string in term.value.lower())
+        query = query_string.lower()
+        return (term for term in self if self.cmp(term, query))
 
 
 class GraphVocabularyFactory(object):
@@ -28,14 +38,17 @@ class GraphVocabularyFactory(object):
         #uris = sorted([item['g'] for item in g])
         return QuerySimpleVocabulary.fromValues(uris)
 
-# FIXME: move this dictionary to IORDf tool to make it configurable,... maybe turn it into an rdf graph?
-#        graph to check for ontology labels, namespace prefixes etc..., language aware?
+# FIXME: move this dictionary to IORDf tool to make it configurable,...
+#        -> maybe turn it into an rdf graph?
+#        graph to check for ontology labels, namespace prefixes etc...,
+#        -> language aware?
 NAMESPACES = {
     'http://xmlns.com/foaf/0.1/': ('foaf', u'FOAF'),
     'http://www.w3.org/1999/02/22-rdf-syntax-ns#': ('rdf', u'RDF'),
     'http://www.w3.org/2000/01/rdf-schema#': ('rdfs', u'RDFS'),
     'http://www.w3.org/2002/07/owl': ('owl', u'OWL'),
-    }
+}
+
 
 class SparqlTreeVocabularyFactory(object):
     # group returned URIs by namespace.
@@ -50,7 +63,7 @@ class SparqlTreeVocabularyFactory(object):
                     "  optional { ?uri <http://www.w3.org/2000/01/rdf-schema#label> ?title . }"
                     "  filter ( !isBlank(?uri) ) "
                     "} "
-                    "order by ?title" 
+                    "order by ?title"
                     % context.n3())
         # this here would be the natural way when parsing a sparql-xml-result
         #uris = sorted([item['g'] for item in g])
@@ -62,12 +75,12 @@ class SparqlTreeVocabularyFactory(object):
                 groupkey = (ns, ns, NAMESPACES[ns][1])
             else:
                 groupkey = (ns, ns, ns)
-            
+
             valuekey = (item[0], item[0], item[1] or item[0])
             terms[groupkey][valuekey] = {}
 
         return TreeVocabulary.fromDict(terms)
-        
+
 
 class SparqlInstanceVocabularyFactory(object):
 
@@ -81,14 +94,15 @@ class SparqlInstanceVocabularyFactory(object):
                     "  optional { ?uri <http://www.w3.org/2000/01/rdf-schema#label> ?title . }"
                     "  filter ( !isBlank(?uri) ) "
                     "} "
-                    "order by ?title" 
+                    "order by ?title"
                     % context.n3())
         # this here would be the natural way when parsing a sparql-xml-result
         #uris = sorted([item['g'] for item in g])
 
         terms = []
         for item in r:
-            term = SimpleVocabulary.createTerm(item[0], item[0], item[1] or item[0])
+            term = SimpleVocabulary.createTerm(item[0], item[0], item[1] or
+                                               item[0])
             terms.append(term)
         return QuerySimpleVocabulary(terms)
 
@@ -103,20 +117,24 @@ class SparqlVocabularyFactory(object):
         # this here would be the natural way when parsing a sparql-xml-result
         #uris = sorted([item['g'] for item in g])
 
-        # the query should return value, title, token, whereas title and token are optional
+        # the query should return value, title, token, whereas title and token
+        # are optional
         terms = []
         for item in r:
             if len(item) >= 3:
-                term = SimpleVocabulary.createTerm(value=item[0], token=item[2], title=item[1])
+                term = SimpleVocabulary.createTerm(value=item[0],
+                                                   token=item[2],
+                                                   title=item[1])
             elif len(item) == 2:
-                term = SimpleVocabulary.createTerm(value=item[0], title=item[1])
+                term = SimpleVocabulary.createTerm(value=item[0],
+                                                   title=item[1])
             else:
                 term = SimpleVocabulary.createTerm(value=item[0])
             terms.append(term)
         return QuerySimpleVocabulary(terms)
-        
+
 
 # Property Vocabulary ...
 #  ... describe vocabularies in rdf as sparql queries?
-#  ->          as 
+#  ->          as
 #  ... ordered by namespace, property label (id)
