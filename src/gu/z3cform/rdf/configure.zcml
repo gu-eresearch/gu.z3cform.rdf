@@ -20,21 +20,11 @@
         />
 
     <adapter
-        factory=".converter.RDFDateDataConverter"
-        for="gu.z3cform.rdf.interfaces.IRDFDateField
-             collective.z3cform.datetimewidget.interfaces.IDateWidget" />
-
-
-    <adapter
         factory=".datamanager.GraphDataManager"
         />
 
     <adapter
         factory=".datamanager.GraphDataManagerForObjectFields"
-        />
-
-    <adapter
-        factory=".converter.SubformAdapter"
         />
 
     <adapter

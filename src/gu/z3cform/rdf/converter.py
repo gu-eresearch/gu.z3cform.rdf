@@ -1,18 +1,22 @@
-from datetime import date
 from zope.component import adapts, getUtility
+import zope.schema.interfaces
 from z3c.form.interfaces import IWidget, NO_VALUE, IDataManager, IDataConverter
 from z3c.form.converter import BaseDataConverter
 from rdflib.util import from_n3
-from rdflib import URIRef, Literal
+from rdflib import URIRef
 from ordf.graph import Graph, _Graph
-from ordf.namespace import XSD
 from gu.z3cform.rdf.interfaces import IRDFN3Field, IRDFObjectField
 # FIXME: this is probably a circular import ...
 from gu.z3cform.rdf.widgets.interfaces import IRDFObjectWidget
 from gu.z3cform.rdf.fresnel.edit import FieldsFromLensMixin
 from z3c.form.form import applyChanges
-# maybe use own exceptions here?
-from collective.z3cform.datetimewidget.interfaces import DateValidationError
+import zope.interface
+import zope.schema
+from z3c.form.interfaces import ISubForm, IValidator, IErrorViewSnippet
+from z3c.form.interfaces import IFormAware
+from z3c.form import form
+from z3c.form.field import Fields
+import zope.component
 
 
 class RDFN3DataConverter(BaseDataConverter):
@@ -39,35 +43,6 @@ class RDFN3DataConverter(BaseDataConverter):
             return None
         return value.n3()
 
-class RDFDateDataConverter(BaseDataConverter):
-    '''
-    converts between literal date field and collective.z3cform.datetimewidget .
-
-    # TODO: this converter can be optimized. it only needs to reformat the 3 supplied values.
-    '''
-    
-    def toWidgetValue(self, value):
-        if value is self.field.missing_value:
-            return ('', '', '')
-        value = value.toPython()
-        return (value.year, value.month, value.day)
-
-    def toFieldValue(self, value):
-        for val in value:
-            if not val:
-                return self.field.missing_value
-
-        try:
-            value = map(int, value)
-        except ValueError:
-            raise DateValidationError
-        try:
-            value = date(*value)
-        except ValueError:
-            raise DateValidationError
-        return Literal(value, datatype=XSD['date'])
-
-import zope.schema.interfaces
 
 class RDFObjectConverter(BaseDataConverter):
     """Data converter for IObjectWidget."""
@@ -80,18 +55,22 @@ class RDFObjectConverter(BaseDataConverter):
         # convert entire value / graph into  a dictionary
 
         if value is self.field.missing_value:
-            return NO_VALUE # TODO: empty graph here?
+            return NO_VALUE  # TODO: empty graph here?
         return value
         # retval = {}
-        # # TODO: LOG this ... try to figure out all calls to _getForm and setupFields.
-        # #       the fields are defined by the lens + what's available on the content object. so we can create the subform, and let it do it's job get a full field list
+        # # TODO: LOG this ... try to figure out all calls to _getForm and
+        #                      setupFields.
+        # #       the fields are defined by the lens + what's available on the
+        #         content object. so we can create the subform, and let it do
+        #         it's job get a full field list
         # if self.widget.subform is  None:
         #     self.widget._getForm(value)
         #     self.widget.subform.setupFields()
         # for name in self.widget.subform.fields:
-        #     # TODO: maybe try te get field from somewhere else ... e.g. Lens? we need schema.field not form.field here
+        #     # TODO: maybe try te get field from somewhere else ... e.g. Lens?
+        #             we need schema.field not form.field here
         #     dm = zope.component.getMultiAdapter(
-        #         (value, self.widget.subform.fields[name].field), IDataManager)
+        #         (value, self.widget.subform.fields[name].field),IDataManager)
         #     retval[name] = dm.query()
 
         # return retval
@@ -102,8 +81,10 @@ class RDFObjectConverter(BaseDataConverter):
         #in the form of a dict key:fieldname, value:fieldvalue
 
         # FIXME: this code is too much plone dependent ....
-        #        need to move the default URI-prefix-setting to this package. (possibly whole create new unique uri to IORDF tool)
-        #        other possibility would be to provide overridable factory to create new named graphs...(doesn't solve uri prefix setting)
+        #        need to move the default URI-prefix-setting to this package.
+        #        (possibly whole create new unique uri to IORDF tool)
+        #        other possibility would be to provide overridable factory to
+        #        create new named graphs...(doesn't solve uri prefix setting)
 
         # TODO: should I try to load something here?
         #       or do I just apply data?
@@ -165,19 +146,22 @@ class RDFObjectConverter(BaseDataConverter):
         names = []
         for prop in set(value.predicates(value.identifier, None)):
             if obj.objects(obj.identifier, prop) != value.objects(value.identifier, prop):
+
                 names.append(prop)
                 obj.remove((obj.identifier, prop, None))
                 for val in value.objects(value.identifier, prop):
                     obj.add((obj.identifier, prop, val))
-            
+
         #obj = self.field.schema(obj)
 
         # names = []
         # for name in self.widget.subform.fields:
         #     try:
-        #         # TODO: maybe try te get field from somewhere else ... e.g. Lens? we need schema.field not form.field here
+        #         # TODO: maybe try te get field from somewhere else ...
+        #                 e.g. Lens? we need schema.field not form.field here
         #         dm = zope.component.getMultiAdapter(
-        #             (obj, self.widget.subform.fields[name].field), IDataManager)
+        #             (obj, self.widget.subform.fields[name].field),
+        #              IDataManager)
         #         oldval = dm.query()
         #         if oldval != value[name]:
         #             dm.set(value[name])
@@ -188,8 +172,8 @@ class RDFObjectConverter(BaseDataConverter):
         # TODO: notify on changes
         # if names:
         #     zope.event.notify(
-        #         zope.lifecycleevent.ObjectModifiedEvent(obj,
-        #             zope.lifecycleevent.Attributes(self.field.schema, *names)))
+        #       zope.lifecycleevent.ObjectModifiedEvent(obj,
+        #           zope.lifecycleevent.Attributes(self.field.schema, *names)))
 
         # Commonly the widget context is security proxied. This method,
         # however, should return a bare object, so let's remove the
@@ -198,12 +182,6 @@ class RDFObjectConverter(BaseDataConverter):
         # return removeSecurityProxy(obj)
         return obj
 
-import zope.interface
-import zope.schema
-from z3c.form.interfaces import ISubForm, IValidator, IErrorViewSnippet, ISubformFactory, IFormAware
-from z3c.form import form
-from z3c.form.field import Fields
-import zope.component
 
 class RDFObjectSubForm(FieldsFromLensMixin, form.BaseForm):
     zope.interface.implements(ISubForm)
@@ -247,17 +225,18 @@ class RDFObjectSubForm(FieldsFromLensMixin, form.BaseForm):
         context = self.getContent()
         lens = self.__parent__.field.lens
         if lens is not None:
-            fields = self._getFieldsFromFresnelLens(lens, context, context.identifier)
+            fields = self._getFieldsFromFresnelLens(lens, context,
+                                                    context.identifier)
             self.fields = Fields(*fields)
         else:
             self.fields = Fields()
 
     def update(self):
         if self.__parent__.field is None:
-            raise ValueError("%r .field is None, that's a blocking point" % self.__parent__)
+            raise ValueError("%r .field is None, that's a blocking point" %
+                             self.__parent__)
         #update stuff from parent to be sure
         self.mode = self.__parent__.mode
-        
         self.setupFields()
 
         super(RDFObjectSubForm, self).update()
@@ -276,36 +255,3 @@ class RDFObjectSubForm(FieldsFromLensMixin, form.BaseForm):
         newval = Graph()
         applyChanges(self, newval, value)
         return newval, errors
-        
-        
-
-
-# move this to plone custom package
-from plone.app.z3cform.interfaces import IPloneFormLayer
-
-class SubformAdapter(object):
-    """Most basic-default subform factory adapter"""
-
-    zope.interface.implements(ISubformFactory)
-    zope.component.adapts(zope.interface.Interface, #widget value
-                          IPloneFormLayer,  #IFormLayer,    #request
-                          zope.interface.Interface, #widget context
-                          zope.interface.Interface, #form
-                          IRDFObjectWidget, #widget
-                          IRDFObjectField, #field
-                          zope.interface.Interface) #field.schema
-    factory = RDFObjectSubForm
-
-    def __init__(self, context, request, widgetContext, form,
-                 widget, field, schema):
-        self.context = context # context for this form
-        self.request = request # request
-        self.widgetContext = widgetContext  # main context
-        self.form = form # main form
-        self.widget = widget # the widget tha manages this form
-        self.field = field # the field to attach the whole thing to
-        self.schema = schema # we don't use this
-
-    def __call__(self):
-        obj = self.factory(self.context, self.request, self.widget)
-        return obj
