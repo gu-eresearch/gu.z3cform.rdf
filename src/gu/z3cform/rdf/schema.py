@@ -102,8 +102,9 @@ class RDFDateField(Date):
 
     def validate(self, value):
         # TODO: fix this validation. is it really necessary to convert again to a python object?
-        val = value.toPython()
-        return super(RDFDateField, self).validate(val)
+        if value is not None:
+            value = value.toPython()
+        return super(RDFDateField, self).validate(value)
 
     def get(self, object):
         import ipdb; ipdb.set_trace()
