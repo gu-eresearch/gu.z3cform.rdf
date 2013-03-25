@@ -35,6 +35,7 @@ class TransactionAwareHandler(Handler):
             result = super(TransactionAwareHandler, self).get(identifier)
             # dm.put(identifier, result) no need to cache/store a read only graph
             #   we only put stuff, that will be put back to store
+            self.dm.put(result, False)
         else:
             LOG.info("Handler: Returned cached graph %s", identifier)
         return result
@@ -79,28 +80,41 @@ class ORDFDataManager(threading.local):
     handler = None
 
     def __init__(self, handler):
-        self.cache = {}
-        self.to_remove = []
         self.handler = handler
-
-    def _init(self):
+        self._reset()
+        # join transaction anyway to clear caches, but be smart and don't do anything
         tn = transaction.get()
-        self._joined = True
+        self.joined = True
         LOG.info("JOIN Transaction: %s", tn)
         tn.join(self)
+
+    def _init(self):
+        if not self.joined:
+            tn = transaction.get()
+            self.joined = True
+            LOG.info("JOIN Transaction: %s", tn)
+            tn.join(self)
 
     def _reset(self):
         self.joined = False
         self.cache = {}
         self.to_remove = []
+        self.modified = set()
         # transaction.get().unjoin(self) don't do this here ... might cause troubles in 2 phase commit
+        # and it's used in __init__ as well
 
     def get(self, identifier):
         return self.cache.get(identifier, None)
 
-    def put(self, graph):
-        self._init()
+    def put(self, graph, modified=True):
+        '''
+        assumes that a graph has been modified, unless overriden
+        '''
+        LOG.info("PUT graph %s into transaction", graph.identifier)
         self.cache[graph.identifier] = graph
+        if modified:
+            self._init()
+            self.modified.add(graph.identifier)
 
     def remove(self, identifier):
         self._init()
@@ -136,6 +150,25 @@ class ORDFDataManager(threading.local):
         changes persist when tpc_finish is called.
         """
         LOG.info("TRANSACTION: commit %s", self)
+        # do changesets here
+        if self.modified or self.to_remove:
+            # FIXME: get real username and possibly create Agent here
+            uname = 'Anonymous'
+            reason = 'edited via web interface'
+            cc = self.handler.context(user=uname, reason=reason)
+            for identifier in self.modified:
+                if identifier not in self.cache:
+                    LOG.warn("medified identifier not found in cache: %s", identifier)
+                    continue
+                cc.add(self.cache[identifier])
+                #remove changed graph from cache to force refetch for changeset
+                del self.cache[identifier]
+            # TODO: ideally we would generate a changeset to remove a graph
+            #       but not sure how this would work, as the changeset removes
+            #       only the triples for a graph, not the entire graph itself?
+            #       
+            # this should add the changset graphs to the cache?
+            cc.commit()
 
     def tpc_vote(self, transaction):
         """Verify that a data manager can commit the transaction.
@@ -163,7 +196,9 @@ class ORDFDataManager(threading.local):
         """
         LOG.info("TRANSACTION: tpc_finish %s", self)
         # ok let's work it out here:
-        for identifier, graph in self.cache.items():
+        for identifier in self.modified:
+            #for identifier, graph in self.cache.items():
+            graph = self.cache[identifier]
             LOG.info("                        put: %s", identifier)
             self.handler._do_put(graph)
         for identifier in self.to_remove:
