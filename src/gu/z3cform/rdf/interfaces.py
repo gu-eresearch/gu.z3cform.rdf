@@ -63,6 +63,19 @@ class IRDFDateField(IRDFField):
     pass
 
 
+class IRDFDateRangeField(IRDFField):
+    """
+
+    Class: IRDFDateRangeField
+
+    [IRDFDateRangeField description]
+    
+
+    Extends: IRDFField
+    """
+    pass
+
+
 class IRDFURIRefField(IRDFField):
     """
     A field handling rdflib URIRefs

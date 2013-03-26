@@ -6,8 +6,9 @@ from gu.z3cform.rdf.interfaces import IRDFN3Field, IRDFMultiValueField
 from gu.z3cform.rdf.interfaces import IRDFLiteralField, IRDFLiteralLineField
 from gu.z3cform.rdf.interfaces import IRDFURIRefField, IRDFChoiceField
 from gu.z3cform.rdf.interfaces import IRDFObjectField, IRDFDateField
+from gu.z3cform.rdf.interfaces import IRDFDateRangeField
 from gu.z3cform.rdf.vocabulary import SparqlTreeVocabularyFactory
-from ordf.namespace import XSD
+from ordf.namespace import XSD, DC
 
 # TODO: for specilised fields like URIRef, or Literal field:
 #       in case there is data in the graph, that does not match the type
@@ -117,6 +118,29 @@ class RDFDateField(Date):
     def set(self, object, value):
         import ipdb; ipdb.set_trace()
         super(RDFDateField, self).set(object, value)
+
+
+class RDFDateRangeField(RDFN3Field):
+
+    implements(IRDFDateRangeField)
+
+    def __init__(self, prop, **kw):
+        super(RDFDateRangeField, self).__init__(prop=prop, **kw)
+        # TODO: ensure only rdftye or rdflang is given and use these values in
+        #       fromUnicode
+        self.rdftype = DC['Period']
+        self.rdflang = None
+
+    def fromUnicode(self, str):
+        value = Literal(str, datatype=self.rdftype)
+        self.validate(value)
+        return value
+
+    def validate(self, value):
+        # TODO: fix this validation. is it really necessary to convert again to a python object?
+        #if value is not None:
+        #    value = value.toPython()
+        return super(RDFDateRangeField, self).validate(value)
 
 
 class RDFURIRefField(URI):
