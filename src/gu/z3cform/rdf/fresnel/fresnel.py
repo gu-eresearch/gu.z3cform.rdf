@@ -7,6 +7,7 @@ from ordf.namespace import FRESNEL, RDF
 from rdflib import Namespace, BNode
 from gu.z3cform.rdf.vocabulary import SparqlInstanceVocabularyFactory
 from gu.z3cform.rdf.vocabulary import SparqlVocabularyFactory
+from z3c.form.interfaces import DISPLAY_MODE, HIDDEN_MODE, INPUT_MODE
 
 Z3C = Namespace(u'http://namespaces.zope.org/z3c/form#')
 
@@ -158,9 +159,21 @@ class Format(Graph):
     def getField(self, property):
         if property not in self._fields:
             field = self.field.getField(property, self.label(property))
+            widgetFactories = {}
             widgetFactory = self.value(self.identifier, Z3C['widgetFactory'])
             if widgetFactory is not None:
-                field.widgetFactory = resolve(widgetFactory)
+                wf = resolve(widgetFactory)
+                widgetFactories = {DISPLAY_MODE: wf,
+                                   INPUT_MODE: wf,
+                                   HIDDEN_MODE: wf
+                                   }
+            displayWidgetFactory = self.value(self.identifier, Z3C['displayWidgetFactory'])
+            if displayWidgetFactory is not None:
+                # FIXME: catch exception ImportError in case the name does not exist
+                dwf = resolve(displayWidgetFactory)
+                widgetFactories[DISPLAY_MODE] = dwf
+            if widgetFactories:
+                field.widgetFactory = widgetFactories
             self._fields[property] = field
         return self._fields[property]
 

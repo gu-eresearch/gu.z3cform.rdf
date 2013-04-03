@@ -118,12 +118,16 @@ class FieldsFromLensMixin(object):
         #       and add them as new first group. (if not disabled)
         
         # apply widgetFactories here
-        for g in (self, ) + self.groups:
+        for g in (self, ) + tuple(self.groups):
             for f in g.fields.values():
                 if hasattr(f.field, 'widgetFactory'):
                     LOG.info('apply costum widgetFactory %s to for field %s', str(f.field.widgetFactory), f.field.__name__)
-                    f.widgetFactory = f.field.widgetFactory
-
+                    if isinstance(f.field.widgetFactory, dict):
+                        for key, value in f.field.widgetFactory.items():
+                            f.widgetFactory[key] = value
+                    else:
+                        f.widgetFactory = f.field.widgetFactory
+        
     def applyChanges(self, data):
         # TODO: move this out to edit view, so that this class can be safely
         #       re-used in display forms
