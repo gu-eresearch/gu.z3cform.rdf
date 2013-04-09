@@ -110,11 +110,12 @@ class ORDFDataManager(threading.local):
         '''
         assumes that a graph has been modified, unless overriden
         '''
-        LOG.info("PUT graph %s into transaction", graph.identifier)
-        self.cache[graph.identifier] = graph
         if modified:
-            self._init()
+            LOG.info("MARK modified %s", graph.identifier)
             self.modified.add(graph.identifier)
+        self._init()
+        LOG.info("PUT graph %s into cache", graph.identifier)
+        self.cache[graph.identifier] = graph
 
     def remove(self, identifier):
         self._init()
