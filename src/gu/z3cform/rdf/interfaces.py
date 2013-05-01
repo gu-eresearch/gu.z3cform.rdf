@@ -115,7 +115,7 @@ class IORDF(Interface):
         """
 
     def getFresnelGraph(self):
-        """ return a pre compiled Fresnel implementation """
+        """ return a pre-compiled Fresnel implementation """
 
 
 class IGraph(Interface):
@@ -126,7 +126,7 @@ class IGraph(Interface):
     
 class IIndividual(Interface):
     """
-    An RDF / OWL inidividual
+    An RDF / OWL individual
     """
 
     identifier = URI(title=u"Identifier",

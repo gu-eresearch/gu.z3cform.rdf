@@ -32,7 +32,7 @@ class GraphVocabularyFactory(object):
     def __call__(self, context):
         h = getUtility(IORDF).getHandler()
         g = h.query("select distinct ?g Where { graph ?g { ?s ?p ?o } }")
-        # FIXME: do some rdflib-sparql sepacialities here:
+        # FIXME: do some rdflib-sparql specialities here:
         uris = sorted([item[0] for item in g])
         # this here would be the natural way when parsing a sparql-xml-result
         #uris = sorted([item['g'] for item in g])

@@ -10,7 +10,7 @@ from gu.z3cform.rdf.interfaces import IRDFDateRangeField
 from gu.z3cform.rdf.vocabulary import SparqlTreeVocabularyFactory
 from ordf.namespace import XSD, DC
 
-# TODO: for specilised fields like URIRef, or Literal field:
+# TODO: for specialised fields like URIRef, or Literal field:
 #       in case there is data in the graph, that does not match the type
 #       leave the data untouched (don't display, and don't change/edit/delete
 #       if possible)
@@ -31,7 +31,7 @@ class RDFN3Field(Text):
 
     def __init__(self, prop, **kw):
         super(RDFN3Field, self).__init__(**kw)
-        # TODO: should type chek prop here. (how is z3c doing this? with
+        # TODO: should type check prop here. (how is z3c doing this? with
         #       FieldProperty?)
         #       -> also check if __name__ is useful in case of ordf's ORM
         #       -> name might also be used as ID combined with default
@@ -57,7 +57,7 @@ class RDFLiteralField(Text):
         self.rdflang = rdflang
 
     def fromUnicode(self, str):
-        # TODO: ensure only rdftye or rdflang is given and use these values in
+        # TODO: ensure only rdftype or rdflang is given and use these values in
         #       fromUnicode
         value = Literal(str)
         self.validate(value)
@@ -72,7 +72,7 @@ class RDFLiteralLineField(TextLine):
 
     def __init__(self, prop, rdftype=None, rdflang=None, **kw):
         super(RDFLiteralLineField, self).__init__(**kw)
-        # TODO: ensure only rdftye or rdflang is given and use these values in
+        # TODO: ensure only rdftype or rdflang is given and use these values in
         #       fromUnicode
         self.prop = prop
         self.rdftype = rdftype
@@ -90,7 +90,7 @@ class RDFDateField(Date):
 
     def __init__(self, prop, **kw):
         super(RDFDateField, self).__init__(**kw)
-        # TODO: ensure only rdftye or rdflang is given and use these values in
+        # TODO: ensure only rdftype or rdflang is given and use these values in
         #       fromUnicode
         self.prop = prop
         self.rdftype = XSD['date']
@@ -126,7 +126,7 @@ class RDFDateRangeField(RDFN3Field):
 
     def __init__(self, prop, **kw):
         super(RDFDateRangeField, self).__init__(prop=prop, **kw)
-        # TODO: ensure only rdftye or rdflang is given and use these values in
+        # TODO: ensure only rdftype or rdflang is given and use these values in
         #       fromUnicode
         self.rdftype = DC['Period']
         self.rdflang = None
@@ -151,7 +151,7 @@ class RDFURIRefField(URI):
 
     def __init__(self, prop, **kw):
         super(RDFURIRefField, self).__init__(**kw)
-        # TODO: should type chek prop here. (how is z3c doing this? with
+        # TODO: should type check prop here. (how is z3c doing this? with
         #       FieldProperty?)
         #       -> also check if __name__ is useful in case of ordf's ORM
         #       -> name might also be used as ID combined with default
@@ -170,7 +170,7 @@ class RDFMultiValueField(List):
 
     def __init__(self, prop, **kw):
         super(RDFMultiValueField, self).__init__(**kw)
-        # TODO: should type chek prop here. (how is z3c doing this? with
+        # TODO: should type check prop here. (how is z3c doing this? with
         #       FieldProperty?)
         #       -> also check if __name__ is useful in case of ordf's ORM
         #       -> name might also be used as ID combined with default

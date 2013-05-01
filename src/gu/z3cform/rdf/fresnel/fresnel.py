@@ -303,7 +303,7 @@ class Field(Graph):
                    # have to replace all - in names with underscores. z3c.forms
                    # assumes - separate name parts and might convert them to .
                    # if necessary. if '-' is part of actual name and not
-                   # separataor, then the name will no longer match after all -
+                   # separator, then the name will no longer match after all -
                    # are replaced by '.'
                    'required': required}  # FIXME: should come from lens
         return self.initField(prop, fieldkw)

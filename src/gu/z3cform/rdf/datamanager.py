@@ -95,7 +95,7 @@ class GraphDataManagerForObjectFields(GraphDataManager):
     def get(self):
         """Get the value.
 
-        returns a singel Graph or a list of Graphs
+        returns a single Graph or a list of Graphs
 
         If no value can be found, raise an error
 
@@ -110,7 +110,7 @@ class GraphDataManagerForObjectFields(GraphDataManager):
         # Assume they are al URIRefs, otherwise we have a data problem anyway.
         for idx in range(0, len(value)):
             uri = value[idx]
-            # TODO: 3 possibilites here,... we find it in current graph or in separate or we have to run a query
+            # TODO: 3 possibilities here... we find it in current graph or in separate or we have to run a query
             # Assume separate Graph here
             handler = getUtility(IORDF).getHandler()
             value[idx] = handler.get(uri)
@@ -119,7 +119,7 @@ class GraphDataManagerForObjectFields(GraphDataManager):
             return value
         if len(value) == 1:
             return value[0]
-        # TODO: check shoulde probably fail here or never reach?
+        # TODO: check should probably fail here or never reach?
         return None
 
 

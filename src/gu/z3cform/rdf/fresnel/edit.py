@@ -78,16 +78,16 @@ def getFieldsFromFresnelLens(lens, graph, resource):
 
 
 # FIXME: turn sublenses into subforms? (multisubforms? ... the only way to
-#        handle anon-nodes properly, which stil might make troubles when
+#        handle anon-nodes properly, which still might make troubles when
 #        matching data ... e.g.: leave unrecognised fields untouched)
 #        however ... need some consistent handling for BNodes ... e.g. display
 #        only?
 # FIXME: create view / edit / create / browse forms for data not attached to
 #        content.
 class FieldsFromLensMixin(object):
-    '''
+    """
     assumes, that getContent returns a RDF Graph instance.
-    '''
+    """
 
     def updateFields(self):
         # TODO: do I have to call super here?
