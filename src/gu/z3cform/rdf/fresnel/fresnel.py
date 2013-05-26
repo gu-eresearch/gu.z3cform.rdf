@@ -174,6 +174,10 @@ class Format(Graph):
                 widgetFactories[DISPLAY_MODE] = dwf
             if widgetFactories:
                 field.widgetFactory = widgetFactories
+            # possibly override description 
+            descr = self.value(self.identifier, Z3C['description'])
+            if descr:
+                field.description = descr
             self._fields[property] = field
         return self._fields[property]
 
@@ -291,6 +295,7 @@ class Field(Graph):
             if vocabulary is not None:
                 # a query based vocabulary?
                 fieldkw['vocabulary'] = self.fresnel.vocabularies[vocabulary]()
+        fieldkw['description'] = self.value(self.identifier, Z3C['description'])
         field = fieldClass(prop=prop, **fieldkw)
 
         return field
