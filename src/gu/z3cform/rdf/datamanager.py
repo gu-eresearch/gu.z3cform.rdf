@@ -9,21 +9,21 @@ from plone.uuid.interfaces import IUUIDAware
 
 
 class GraphDataManager(DataManager):
-    # FIXME... for now this works if the context is a graph, but it won't allow us to mix stuff'
-    # for now this is ok, and maybe we can mix stuff with subforms :)
+    """
+    A data manager that operates on a Graph.
+    """
+    # FIXME: need to distinguish two different cases here.
+    #        1. reference to separate object, which sholud not be removed
+    #        2. reference to object that belongs to this one, which sholud be removed.
+    #        Possible fix: use relation objects to relate to "external" objects
+    # FIXME: currently this impl. leaves "private" sub graphs untouched, in case of multi-subobject it
+    #        will even generate new subgraphs and the old ones will be left in database
 
-    adapts(IUUIDAware, IRDFField)
+    adapts(IGraph, IRDFField)
 
     def __init__(self, context, field):
-        # if (not isinstance(data, Graph)):
-        #     raise ValueError("Date must be a rdflib Graph instance: %s" % type(data))
-        if not isinstance(context, Graph):
-            # TODO: get graph from somewhere
-            self.graph = IRepositoryMetadata(context)
-        else:
-            import ipdb; ipdb.set_trace()
-            self.graph = context
-            # FIXME: here we assume, the ordf storage model, that the Graph URI is the same as the individual URI
+        self.graph = context
+        # FIXME: here we assume, the ordf storage model, that the Graph URI is the same as the individual URI
         self.subj = self.graph.identifier
         self.field = field
         # TODO: think ... this is slightly different to z3c.form fields, where field.__name__ is being used.
@@ -47,11 +47,25 @@ class GraphDataManager(DataManager):
             raise AttributeError
         # TODO: what if field is defined as single, but there are multiple values?
         #       showing one would hide the others, showing all would confuse the field
-        if len(value) > 1 or ICollection.providedBy(self.field):
-            # TODO: check if this is a generator or a full list
+        # TODO: this code can't deal with sub ojects referenced via BNodes
+        # DEL: if len(value) > 1 or ICollection.providedBy(self.field):
+        if ICollection.providedBy(self.field):
+            # check value_type .. if object, we'll retrieve a graph
+            if IRDFObjectField.providedBy(self.field.value_type):
+                # load ass subgraphs
+                # TODO: do I need to filter out empty graphs?
+                handler = getUtility(IORDF).getHandler()                                    
+                # TODO: 3 possibilities here... we find it in current graph or in separate or we have to run a query
+                # Assume separate Graph here
+                value = [handler.get(v) for v in value]
             return value
         if len(value) == 1:
-            return value[0]
+            # return only one value, the field doesn't support more anyway
+            value = value[0]
+            if IRDFObjectField.providedBy(self.field):
+                handler = getUtility(IORDF).getHandler()                                    
+                value = handler.get(value)
+            return value
         # TODO: check shoulde probably fail here or never reach?
         return None
 
@@ -68,6 +82,7 @@ class GraphDataManager(DataManager):
 
     def set(self, value):
         """Set the value"""
+        # TODO: do we have to remove the referenced graphs as well? (in case of IRDFObjectField)
         self.graph.remove((self.subj, self.prop, None))
         if value is None:
             return
@@ -77,7 +92,14 @@ class GraphDataManager(DataManager):
         for val in value:
             if val is not None:
                 # FIXME: check conversion of value to URIRef or Literal?
-                self.graph.add((self.subj, self.prop, val))
+                if isinstance(val, Graph):
+                    # a multivalue object field might send in a whole graph
+                    self.graph.add((self.subj, self.prop, val.identifier))
+                    # TODO: check why this is not managed by ContextGraphDataManagerForObjectFields
+                    handler = getUtility(IORDF).getHandler()                    
+                    handler.put(val)
+                else:
+                    self.graph.add((self.subj, self.prop, val))
 
     def canAccess(self):
         """Can the value be accessed."""
@@ -88,54 +110,23 @@ class GraphDataManager(DataManager):
         return True
 
 
-class GraphDataManagerForObjectFields(GraphDataManager):
+class ContextGraphDataManager(GraphDataManager):
+    """
+    A data manager that looks up a Graph for a given context and operates on that Graph.
+    """
 
-    adapts(IUUIDAware, IRDFObjectField)
-    
-    def get(self):
-        """Get the value.
+    adapts(IUUIDAware, IRDFField)
 
-        returns a single Graph or a list of Graphs
-
-        If no value can be found, raise an error
-
-        # FIXME: should return a set here, because RDF is unordered. however the widget lookup and ui deals a lot better with lists (except for comparing unordered lists).
-        """
-        value = list(self.graph.objects(self.subj, self.prop))
-        if value is None:
-            raise AttributeError
-        # TODO: what if field is defined as single, but there are multiple values?
-        #       showing one would hide the others, showing all would confuse the field
-        # TODO: can we do IObject for sub-forms to deal with BNodes?
-        # Assume they are al URIRefs, otherwise we have a data problem anyway.
-        for idx in range(0, len(value)):
-            uri = value[idx]
-            # TODO: 3 possibilities here... we find it in current graph or in separate or we have to run a query
-            # Assume separate Graph here
-            handler = getUtility(IORDF).getHandler()
-            value[idx] = handler.get(uri)
-        if len(value) > 1 or ICollection.providedBy(self.field):
-            # TODO: check if this is a generator or a full list
-            return value
-        if len(value) == 1:
-            return value[0]
-        # TODO: check should probably fail here or never reach?
-        return None
-
-
-    def set(self, value):
-        """Set the value"""
-        # TODO: do we have to remove the referenced graphs as well?
-        self.graph.remove((self.subj, self.prop, None))
-        if value is None:
-            return
-        # TODO: can we do IObject for sub-forms to deal with BNodes?
-        if not ICollection.providedBy(self.field):
-            value = [value]
-        handler = getUtility(IORDF).getHandler()
-        for val in value:
-            if val is not None:
-                # FIXME: check conversion of value to URIRef or Literal?
-                self.graph.add((self.subj, self.prop, val.identifier))
-                handler.put(val)
-
+    def __init__(self, context, field):
+        self.graph = IRepositoryMetadata(context)
+        # FIXME: here we assume, the ordf storage model, that the Graph URI is the same as the individual URI
+        self.subj = self.graph.identifier
+        self.field = field
+        # TODO: think ... this is slightly different to z3c.form fields, where field.__name__ is being used.
+        #       __name__ might be useful in case of ORM.. .(but would I then use an N3Field or this datamanager at all?)
+        if not hasattr(field, 'prop'):
+            import ipdb; ipdb.set_trace()
+            # TODO: shall we use field.__name__ with a default url-prefix?
+            self.prop = URIRef('http://fixeme.com/noprop')
+        else:
+            self.prop = field.prop        

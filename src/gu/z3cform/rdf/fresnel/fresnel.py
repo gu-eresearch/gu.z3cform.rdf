@@ -227,16 +227,25 @@ class Lens(Graph):
                              FRESNEL["PropertyDescription"])):
                     x = self.one((prop, FRESNEL["sublens"], None))
                     if x:
+                        # standard fresnel sublens generates SubForm / ObjectField with different context
                         lens = self.fresnel.lenses.get(x[2])
+                        subprop = self.one((prop, FRESNEL['property'], None))
+                        # TODO: might check for fresnel:use here and/or change of fresnel:group
+                        yield subprop[2], lens, self.getFormat(subprop[2])
+                        subProperties.append(subprop[2])
                     else:
+                        # custom propertydescription
                         lens = None
                         for prop in self.objects(prop, FRESNEL["property"]):
                             if prop not in hideProperties:
                                 yield prop, lens, self.getFormat(prop)
                                 subProperties.append(prop)
                 elif self.one((prop, RDF["type"], Z3C["PropertyGroup"])):
+                    # extension to generate GroupForms
                     x = self.one((prop, Z3C["propertyGroup"], None))
                     if x:
+                        # TODO: should capture properties here, so that allProperties below
+                        #       does not re-add them (all of them, hide, show and sub)
                         group = self.fresnel.propertyGroups.get(x[2])
                         yield None, group, None
                     # this here is not about a single property. if there is a

@@ -3,7 +3,7 @@ import logging
 from gu.z3cform.rdf.interfaces import IIndividual
 from gu.z3cform.rdf.interfaces import IORDF
 from ordf.namespace import FRESNEL
-from rdflib import Namespace
+from rdflib import Namespace, XSD, Literal
 from z3c.form import field
 from zope.component import getUtility
 from zope.dottedname.resolve import resolve
@@ -33,6 +33,10 @@ def getLens(individual):
 
 
 def getFieldsFromFresnelLens(lens, graph, resource):
+    """
+
+    return a tuple of groups and a list of fields
+    """
     fields = []
     groups = []
     for prop, sublens, format in lens.properties(graph, resource,
@@ -51,7 +55,6 @@ def getFieldsFromFresnelLens(lens, graph, resource):
             elif isinstance(sublens, Lens):
                 # we render a sub object....
                 #  retrieve graph this prop is pointing to and build form
-                # import ipdb; ipdb.set_trace()
                 fieldfactory = resolve("gu.z3cform.rdf.schema.RDFObjectField")
                 label = format.label(prop)
                 fieldkw = {
@@ -61,19 +64,29 @@ def getFieldsFromFresnelLens(lens, graph, resource):
                                               FRESNEL['classLensDomain']),
                     'required': False}
                 fieldinst = fieldfactory(prop=prop, **fieldkw)
+                # TODO: think about additional paremeters clasuri and lens. both are needed here on the field
+                #       but are rather unusual. (maybe as optional parameters into the field constructor?)
+                fieldinst.lens = sublens  # necessary to generate fields for subform
+
+                multi = format.value(format.identifier, Z3C['multi'], default=Literal("false", datatype=XSD.boolean))
+                if multi.toPython():
+                    # multivalued object field requested
+                    fieldkw['value_type'] = fieldinst
+                    del fieldkw['classuri']
+                    fieldfactory = resolve("gu.z3cform.rdf.schema.RDFMultiValueField")
+                    fieldinst = fieldfactory(prop=prop, **fieldkw)
+                
                 if fieldinst is not None:
-                    fieldinst.lens = sublens  # TODO: make this a parameter to
-                                              #       field instance, optional,
-                                              #       and classuri as well,
                     fields.append(fieldinst)
-        if format is None:
-            LOG.info("Ignoring field %s . No format", prop)
-            continue
         else:
-            # it's a simple field create it
-            fieldinst = format.getField(prop)
-            if fieldinst is not None:
-                fields.append(fieldinst)
+            if format is None:
+                LOG.info("Ignoring field %s . No format", prop)
+                continue
+            else:
+                # it's a simple field create it
+                fieldinst = format.getField(prop)
+                if fieldinst is not None:
+                    fields.append(fieldinst)
     return tuple(groups), fields
 
 
