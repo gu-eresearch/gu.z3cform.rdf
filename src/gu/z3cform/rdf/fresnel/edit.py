@@ -21,15 +21,16 @@ def getLens(individual):
         if rtype in formatgraph.classLenses:
             lens = formatgraph.classLenses[rtype]
             break
+    if lens is not None:
+        return lens[0]
     if lens is None:
         # search for a lens with no classDomain:
         for lensuri, lensgraph in formatgraph.lenses.items():
             if lensgraph.value(lensuri, FRESNEL['classLensDomain']) is None:
-                lens = [lensgraph]
-                break
+                return lensgraph
     # FIXME: make sure to select proper lens based on group, priority,
     #        whatever
-    return lens[0]
+    return None
 
 
 def getFieldsFromFresnelLens(lens, graph, resource):
@@ -117,6 +118,7 @@ class FieldsFromLensMixin(object):
         LOG.info('individual types: %s', individual.type)
         LOG.info('picked lens: %s', lens)
         fields = []
+        groups = ()
         if lens is not None:
             groups, fields = getFieldsFromFresnelLens(lens, individual.graph,
                                                       individual.identifier)
@@ -127,7 +129,7 @@ class FieldsFromLensMixin(object):
 
         if hasattr(self, 'groups'):
             self.groups += groups
-        # TODO: if group list is not empty, remove all fields from main fileds
+        # TODO: if group list is not empty, remove all fields from main fields
         #       and add them as new first group. (if not disabled)
         
         # apply widgetFactories here
