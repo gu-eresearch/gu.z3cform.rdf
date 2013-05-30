@@ -123,16 +123,23 @@ class FieldsFromLensMixin(object):
         if lens is not None:
             groups, fields = getFieldsFromFresnelLens(lens, individual.graph,
                                                       individual.identifier)
+
+        if hasattr(self, 'groups'):
+            if (self.groups or groups) and fields:
+                # turn main fields into Group only if we have fields to add to and if this form
+                # already has groups
+                g = RDFGroupFactory('Default_RDF_Lens', field.Fields(*fields),
+                                    'RDF Metadata', None)
+                fields = ()
+                groups = (g, ) + groups
+            self.groups += groups
+
+        # if there is still something in fields we add it to the normal field list
         if self.fields is not None:
             self.fields += field.Fields(*fields)
         else:
             self.fields = field.Fields(*fields)
-
-        if hasattr(self, 'groups'):
-            self.groups += groups
-        # TODO: if group list is not empty, remove all fields from main fields
-        #       and add them as new first group. (if not disabled)
-        
+            
         # apply widgetFactories here
         for g in (self, ) + tuple(self.groups):
             for f in g.fields.values():
