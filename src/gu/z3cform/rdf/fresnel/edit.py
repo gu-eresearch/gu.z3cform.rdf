@@ -69,8 +69,10 @@ def getFieldsFromFresnelLens(lens, graph, resource):
                 #       but are rather unusual. (maybe as optional parameters into the field constructor?)
                 fieldinst.lens = sublens  # necessary to generate fields for subform
 
-                multi = format.value(format.identifier, Z3C['multi'], default=Literal("false", datatype=XSD.boolean))
-                if multi.toPython():
+                #multi = format.value(format.identifier, Z3C['multi'], default=Literal("false", datatype=XSD.boolean))
+                # FIXME: there is a problem with current rdflib zodb and typed literals
+                multi = format.value(format.identifier, Z3C['multi'], default=Literal("false"))
+                if multi in ('true', '1', 'True'):
                     # multivalued object field requested
                     fieldkw['value_type'] = fieldinst
                     del fieldkw['classuri']
@@ -105,7 +107,6 @@ class FieldsFromLensMixin(object):
 
     def updateFields(self):
         # TODO: do I have to call super here?
-        #import ipdb; ipdb.set_trace()
         try:
             # call our superclass updateFields if there is any
             super(FieldsFromLensMixin, self).updateFields()
