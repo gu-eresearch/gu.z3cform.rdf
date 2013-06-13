@@ -8,7 +8,7 @@ from ordf.graph import Graph, _Graph
 from gu.z3cform.rdf.interfaces import IRDFN3Field, IRDFObjectField
 # FIXME: this is probably a circular import ...
 from gu.z3cform.rdf.widgets.interfaces import IRDFObjectWidget
-from gu.z3cform.rdf.fresnel.edit import FieldsFromLensMixin
+from gu.z3cform.rdf.fresnel.edit import FieldsFromLensMixin, getFieldsFromFresnelLens
 from z3c.form.form import applyChanges
 import zope.interface
 import zope.schema
@@ -91,12 +91,14 @@ class RDFObjectConverter(BaseDataConverter):
         from plone.registry.interfaces import IRegistry
         from gu.plone.rdf.interfaces import IRDFSettings
         import uuid
+        
         registry = getUtility(IRegistry)
         settings = registry.forInterface(IRDFSettings, check=False)
         contenturi = "%s%s" % (settings.base_uri, uuid.uuid1())
 
         identifier = URIRef(contenturi)
         obj = Graph(identifier=identifier)
+
         for prop, data in value.predicate_objects(value.identifier):
             obj.add((identifier, prop, data))
 
@@ -144,16 +146,32 @@ class RDFObjectConverter(BaseDataConverter):
             obj = self.createObject(value)
 
         names = []
-        for prop in set(value.predicates(value.identifier, None)):
+        # TODO: find another way to solve property removal:
+        #       maybe it's possible to go through serf.widget.subform.fields to get fieldnames this subform operates on
+        #       -> how to remove a subgraph completely? there is always the latest changeset included therefore
+        #          the graph will never be empty and the object will always hold a reference to the subgraph (problem or not?)
+        #
+        #       Currently:
+        #       -> any additional data in the current (obj) Graph will be removed and the Graph
+        #          will be repopulated with data given in value. (otherwise removal of objects won't work)
+        # TODO: see also GraphDataManager
+        # 1. remove changed props from obj (even those that don't exist in value)
+        for prop in set(obj.predicates(obj.identifier, None)):
             if obj.objects(obj.identifier, prop) != value.objects(value.identifier, prop):
-
+                # property has been changed ... remove it
                 names.append(prop)
                 obj.remove((obj.identifier, prop, None))
+        # 2. update possible changes and add new props from value
+        for prop in set(value.predicates(value.identifier, None)):
+            if obj.objects(obj.identifier, prop) != value.objects(value.identifier, prop):
+                if prop not in names:
+                    names.append(prop)
+                obj.remove((obj.identifier, prop, None))  # should not be necessary here
                 for val in value.objects(value.identifier, prop):
                     obj.add((obj.identifier, prop, val))
 
         #obj = self.field.schema(obj)
-
+        # TODO: when resurrecting the commented code below, be aware that value is arleady a graph
         # names = []
         # for name in self.widget.subform.fields:
         #     try:
@@ -180,6 +198,10 @@ class RDFObjectConverter(BaseDataConverter):
         # security proxy now that all fields have been set using the security
         # mechanism.
         # return removeSecurityProxy(obj)
+        if len(obj)==0:
+            # TODO: if we have an empty graph then return None
+            #       or should the datamanager.GraphDataManagerForObjectFields take care of this?
+            obj = None
         return obj
 
 
@@ -225,8 +247,8 @@ class RDFObjectSubForm(FieldsFromLensMixin, form.BaseForm):
         context = self.getContent()
         lens = self.__parent__.field.lens
         if lens is not None:
-            fields = self._getFieldsFromFresnelLens(lens, context,
-                                                    context.identifier)
+            _, fields = getFieldsFromFresnelLens(lens, context,
+                                                 context.identifier)
             self.fields = Fields(*fields)
         else:
             self.fields = Fields()

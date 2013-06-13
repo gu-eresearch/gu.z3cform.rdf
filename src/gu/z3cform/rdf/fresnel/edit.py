@@ -3,7 +3,7 @@ import logging
 from gu.z3cform.rdf.interfaces import IIndividual
 from gu.z3cform.rdf.interfaces import IORDF
 from ordf.namespace import FRESNEL
-from rdflib import Namespace
+from rdflib import Namespace, XSD, Literal
 from z3c.form import field
 from zope.component import getUtility
 from zope.dottedname.resolve import resolve
@@ -21,18 +21,23 @@ def getLens(individual):
         if rtype in formatgraph.classLenses:
             lens = formatgraph.classLenses[rtype]
             break
+    if lens is not None:
+        return lens[0]
     if lens is None:
         # search for a lens with no classDomain:
         for lensuri, lensgraph in formatgraph.lenses.items():
             if lensgraph.value(lensuri, FRESNEL['classLensDomain']) is None:
-                lens = [lensgraph]
-                break
+                return lensgraph
     # FIXME: make sure to select proper lens based on group, priority,
     #        whatever
-    return lens[0]
+    return None
 
 
 def getFieldsFromFresnelLens(lens, graph, resource):
+    """
+
+    return a tuple of groups and a list of fields
+    """
     fields = []
     groups = []
     for prop, sublens, format in lens.properties(graph, resource,
@@ -51,7 +56,6 @@ def getFieldsFromFresnelLens(lens, graph, resource):
             elif isinstance(sublens, Lens):
                 # we render a sub object....
                 #  retrieve graph this prop is pointing to and build form
-                # import ipdb; ipdb.set_trace()
                 fieldfactory = resolve("gu.z3cform.rdf.schema.RDFObjectField")
                 label = format.label(prop)
                 fieldkw = {
@@ -61,19 +65,31 @@ def getFieldsFromFresnelLens(lens, graph, resource):
                                               FRESNEL['classLensDomain']),
                     'required': False}
                 fieldinst = fieldfactory(prop=prop, **fieldkw)
+                # TODO: think about additional paremeters clasuri and lens. both are needed here on the field
+                #       but are rather unusual. (maybe as optional parameters into the field constructor?)
+                fieldinst.lens = sublens  # necessary to generate fields for subform
+
+                #multi = format.value(format.identifier, Z3C['multi'], default=Literal("false", datatype=XSD.boolean))
+                # FIXME: there is a problem with current rdflib zodb and typed literals
+                multi = format.value(format.identifier, Z3C['multi'], default=Literal("false"))
+                if multi in ('true', '1', 'True'):
+                    # multivalued object field requested
+                    fieldkw['value_type'] = fieldinst
+                    del fieldkw['classuri']
+                    fieldfactory = resolve("gu.z3cform.rdf.schema.RDFMultiValueField")
+                    fieldinst = fieldfactory(prop=prop, **fieldkw)
+                
                 if fieldinst is not None:
-                    fieldinst.lens = sublens  # TODO: make this a parameter to
-                                              #       field instance, optional,
-                                              #       and classuri as well,
                     fields.append(fieldinst)
-        if format is None:
-            LOG.info("Ignoring field %s . No format", prop)
-            continue
         else:
-            # it's a simple field create it
-            fieldinst = format.getField(prop)
-            if fieldinst is not None:
-                fields.append(fieldinst)
+            if format is None:
+                LOG.info("Ignoring field %s . No format", prop)
+                continue
+            else:
+                # it's a simple field create it
+                fieldinst = format.getField(prop)
+                if fieldinst is not None:
+                    fields.append(fieldinst)
     return tuple(groups), fields
 
 
@@ -91,7 +107,6 @@ class FieldsFromLensMixin(object):
 
     def updateFields(self):
         # TODO: do I have to call super here?
-        #import ipdb; ipdb.set_trace()
         try:
             # call our superclass updateFields if there is any
             super(FieldsFromLensMixin, self).updateFields()
@@ -104,19 +119,27 @@ class FieldsFromLensMixin(object):
         LOG.info('individual types: %s', individual.type)
         LOG.info('picked lens: %s', lens)
         fields = []
+        groups = ()
         if lens is not None:
             groups, fields = getFieldsFromFresnelLens(lens, individual.graph,
                                                       individual.identifier)
+
+        if hasattr(self, 'groups'):
+            if (self.groups or groups) and fields:
+                # turn main fields into Group only if we have fields to add to and if this form
+                # already has groups
+                g = RDFGroupFactory('Default_RDF_Lens', field.Fields(*fields),
+                                    'RDF Metadata', None)
+                fields = ()
+                groups = (g, ) + groups
+            self.groups += groups
+
+        # if there is still something in fields we add it to the normal field list
         if self.fields is not None:
             self.fields += field.Fields(*fields)
         else:
             self.fields = field.Fields(*fields)
-
-        if hasattr(self, 'groups'):
-            self.groups += groups
-        # TODO: if group list is not empty, remove all fields from main fileds
-        #       and add them as new first group. (if not disabled)
-        
+            
         # apply widgetFactories here
         for g in (self, ) + tuple(self.groups):
             for f in g.fields.values():

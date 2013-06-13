@@ -24,7 +24,7 @@
         />
 
     <adapter
-        factory=".datamanager.GraphDataManagerForObjectFields"
+        factory=".datamanager.ContextGraphDataManager"
         />
 
     <adapter

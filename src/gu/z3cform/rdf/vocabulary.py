@@ -2,7 +2,7 @@ from zope.schema.interfaces import IVocabularyFactory, ITitledTokenizedTerm
 from zope.interface import implements
 from zope.component import getUtility
 from gu.z3cform.rdf.interfaces import IORDF
-from zope.schema.vocabulary import SimpleVocabulary, TreeVocabulary
+from zope.schema.vocabulary import SimpleVocabulary, TreeVocabulary, SimpleTerm
 from z3c.formwidget.query.interfaces import IQuerySource
 from rdflib.namespace import split_uri
 from collections import defaultdict
@@ -38,7 +38,7 @@ class GraphVocabularyFactory(object):
         #uris = sorted([item['g'] for item in g])
         return QuerySimpleVocabulary.fromValues(uris)
 
-# FIXME: move this dictionary to IORDf tool to make it configurable,...
+# FIXME: move this dictionary to IORDf tool to make it configurable,... (see ord utils for namespace bindings)
 #        -> maybe turn it into an rdf graph?
 #        graph to check for ontology labels, namespace prefixes etc...,
 #        -> language aware?
@@ -122,14 +122,14 @@ class SparqlVocabularyFactory(object):
         terms = []
         for item in r:
             if len(item) >= 3:
-                term = SimpleVocabulary.createTerm(value=item[0],
-                                                   token=item[2],
-                                                   title=item[1])
+                term = SimpleTerm(value=item[0],
+                                  token=item[2],
+                                  title=item[1])
             elif len(item) == 2:
-                term = SimpleVocabulary.createTerm(value=item[0],
-                                                   title=item[1])
+                term = SimpleTerm(value=item[0],
+                                  title=item[1])
             else:
-                term = SimpleVocabulary.createTerm(value=item[0])
+                term = SimpleTerm(value=item[0])
             terms.append(term)
         return QuerySimpleVocabulary(terms)
 
