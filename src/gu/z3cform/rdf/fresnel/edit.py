@@ -121,7 +121,7 @@ class FieldsFromLensMixin(object):
         for g in (self, ) + tuple(self.groups):
             for f in g.fields.values():
                 if hasattr(f.field, 'widgetFactory'):
-                    LOG.info('apply costum widgetFactory %s to for field %s', str(f.field.widgetFactory), f.field.__name__)
+                    LOG.info('apply custom widgetFactory %s to field %s', str(f.field.widgetFactory), f.field.__name__)
                     if isinstance(f.field.widgetFactory, dict):
                         for key, value in f.field.widgetFactory.items():
                             f.widgetFactory[key] = value
