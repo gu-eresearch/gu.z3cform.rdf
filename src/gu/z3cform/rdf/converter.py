@@ -88,13 +88,15 @@ class RDFObjectConverter(BaseDataConverter):
 
         # TODO: should I try to load something here?
         #       or do I just apply data?
-        from plone.registry.interfaces import IRegistry
-        from gu.plone.rdf.interfaces import IRDFSettings
+        # FIXME: make this here independent of Zope2 !!!!!
+        #        maybe override component for Zope2 and do something better here?
+        #        also dependency on gu.plone.rdf is bad here (prob. need a Utility here)
+        from App.config import getConfiguration
         import uuid
+
+        settings = getConfiguration().product_config.get('gu.plone.rdf', dict())
         
-        registry = getUtility(IRegistry)
-        settings = registry.forInterface(IRDFSettings, check=False)
-        contenturi = "%s%s" % (settings.base_uri, uuid.uuid1())
+        contenturi = "%s%s" % (settings.get('baseuri'), uuid.uuid1())
 
         identifier = URIRef(contenturi)
         obj = Graph(identifier=identifier)

@@ -64,7 +64,7 @@ TESTS_REQUIRE = [
     ]
 
 setup(name='gu.z3cform.rdf',
-      version='0.1',
+      version='0.4dev',
       url='http://pypi.python.org/pypi/zope.schema',
       license='ZPL 2.1',
       description='zope.interface extension for defining data schemas',
