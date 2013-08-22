@@ -19,6 +19,7 @@ LOG = logging.getLogger(__name__)
 
 from ordf.utils import get_identifier
 
+
 class TransactionAwareHandler(Handler):
 
     dm = None
@@ -58,7 +59,7 @@ class TransactionAwareHandler(Handler):
             graph = frag
         self.put(graph)
         LOG.info("Handler: schedule append(%s, %s)", frag.identifier)
-        
+
     def remove(self, identifier):
         self.dm.remove(identifier)
         LOG.info("Handler: schedule remove(%s)", identifier)
@@ -124,7 +125,7 @@ class ORDFDataManager(threading.local):
     def abort(self, transaction):
         LOG.info("TRANSACTION: abort %s", self)
         self.tpc_abort(transaction)
-    
+
     # Two-phase commit protocol.  These methods are called by the ITransaction
     # object associated with the transaction being committed.  The sequence
     # of calls normally follows this regular expression:
@@ -167,7 +168,7 @@ class ORDFDataManager(threading.local):
             # TODO: ideally we would generate a changeset to remove a graph
             #       but not sure how this would work, as the changeset removes
             #       only the triples for a graph, not the entire graph itself?
-            #       
+            #
             # this should add the changset graphs to the cache?
             cc.commit()
 
@@ -219,7 +220,7 @@ class ORDFDataManager(threading.local):
 
         This should never fail.
         """
-        LOG.info("TRANSACTION: tpc_abort %s", self)        
+        LOG.info("TRANSACTION: tpc_abort %s", self)
         self._reset()
         # TODO: undo changes, make sure nothing get's written to store
 
@@ -245,18 +246,24 @@ class ORDFDataManager(threading.local):
 
         this is called by a transaction in in case a saveponit is requested.
         """
-        LOG.info("TRANSACTION: savepoint %s", self)        
         # TODO: return at least a Non RollBack Savepoint here.
+        return RDFSavePoint(self)
 
 
 class RDFSavePoint(object):
 
     implements(IDataManagerSavepoint)
 
+    def __init__(self,  datamanager):
+        LOG.info("SAVEPOINT: savepoint %s", self)
+        self.dm = datamanager
+        self.modified = self.dm.modified.copy()
+
     def rollback(self):
         """Rollback any work done since the savepoint.
         """
-        pass
+        LOG.info("SAVEPOINT: rollback %s", self)
+        self.dm.modified = self.modified
 
 
 # class ISynchronizer(zope.interface.Interface):
