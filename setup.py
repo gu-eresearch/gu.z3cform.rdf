@@ -50,8 +50,8 @@ REQUIRES = [
         'zope.interface',
         'zope.dottedname', # TODO: keep until fieldfactory lookup becomes adapter lookup
         'z3c.form',
-        'rdflib',
         'rdflib-sparql',
+        'rdflib<4.0dev',
         'z3c.formwidget.query',
         ]
 
@@ -64,7 +64,7 @@ TESTS_REQUIRE = [
     ]
 
 setup(name='gu.z3cform.rdf',
-      version='0.4dev',
+      version='0.4',
       url='http://pypi.python.org/pypi/zope.schema',
       license='ZPL 2.1',
       description='zope.interface extension for defining data schemas',
