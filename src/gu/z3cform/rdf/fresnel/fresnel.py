@@ -174,7 +174,7 @@ class Format(Graph):
                 widgetFactories[DISPLAY_MODE] = dwf
             if widgetFactories:
                 field.widgetFactory = widgetFactories
-            # possibly override description 
+            # possibly override description
             descr = self.value(self.identifier, Z3C['fieldDescription'])
             if descr:
                 field.description = descr
@@ -328,6 +328,7 @@ class Vocabulary(Graph):
     # this class may be suitable as vocabularyfactory, I am just not sure how
     # to register it properly, as the connection to the triple store might not
     # yet be available at that time.
+    # TODO: might be possible now, as we know the external store at startup time
 
     def __init__(self, *av, **kw):
         super(Vocabulary, self).__init__(*av, **kw)
