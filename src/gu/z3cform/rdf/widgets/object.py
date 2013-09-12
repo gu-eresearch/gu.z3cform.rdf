@@ -11,7 +11,6 @@ from zope.schema import ValidationError
 from z3c.form.error import MultipleErrors
 
 
-
 class RDFObjectWidget(ObjectWidget):
 
     implements(IRDFObjectWidget)
@@ -39,6 +38,28 @@ class RDFObjectWidget(ObjectWidget):
                 #return ObjectWidget.render(self)  # skip ObjectWidgets render method
         return template(self)
 
+    def applyValue(self, widget, value=NO_VALUE):
+        """Validate and apply value to given widget
+        """
+        # TODO: check, this method might not be necessary
+
+        converter = IDataConverter(widget)
+        try:
+            getMultiAdapter(
+                (self.context,
+                 self.request,
+                 self.form,
+                 getattr(widget, 'field', None),
+                 widget),
+                IValidator).validate(value)
+
+            widget.value = converter.toWidgetValue(value)
+        except (ValidationError, ValueError):
+            # on exception, setup the widget error message
+            # set the wrong value as value
+            # the widget itself ought to cry about the error
+            widget.value = value
+
     @apply
     def value():
         """This invokes updateWidgets on any value change e.g. update/extract."""
@@ -62,7 +83,7 @@ class RDFObjectWidget(ObjectWidget):
             self.updateWidgets()
 
             # ensure that we apply our new values to the widgets
-            # TODO: check,. this sholud already be applied in updateWidgets? 
+            # TODO: check,. this sholud already be applied in updateWidgets?
             # import ipdb; ipdb.set_trace()
             # if value is not NO_VALUE:
             #     for name in self.subform.fields:  #zope.schema.getFieldNames(self.field.schema):
@@ -73,55 +94,7 @@ class RDFObjectWidget(ObjectWidget):
 
 
 
-    def update(self):
-        # TODO: remove, same as base
-        #       ... get widget value form field value and generatu sub widgets
-        
-        #very-very-nasty: skip raising exceptions in extract while we're updating
-        self._updating = True
-        try:
-            super(ObjectWidget, self).update()
-            self.updateWidgets(setErrors=False)
-        finally:
-            self._updating = False
 
-
-    def updateWidgets(self, setErrors=True):
-        # TODO: remove, same as base
-        #       ... generate gorm and using current value
-        if self._value is not NO_VALUE:
-            self._getForm(self._value)
-        else:
-            self._getForm(None)
-            self.subform.ignoreContext = True
-
-        self.subform.update()
-        if setErrors:
-            self.subform._validate()
-
-    def applyValue(self, widget, value=NO_VALUE):
-        """Validate and apply value to given widget
-        """
-        # TODO: check, this method might not be necessary
-        converter = IDataConverter(widget)
-        try:
-            getMultiAdapter(
-                (self.context,
-                 self.request,
-                 self.form,
-                 getattr(widget, 'field', None),
-                 widget),
-                IValidator).validate(value)
-
-            widget.value = converter.toWidgetValue(value)
-        except (ValidationError, ValueError):
-            # on exception, setup the widget error message
-            # set the wrong value as value
-            # the widget itself ought to cry about the error
-            widget.value = value
-
-
-            
 
 @adapter(IRDFObjectField, IFormLayer)
 @implementer(IFieldWidget)
