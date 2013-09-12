@@ -2,8 +2,9 @@ import logging
 
 from gu.z3cform.rdf.interfaces import IIndividual
 from gu.z3cform.rdf.interfaces import IORDF
+from gu.z3cform.rdf.namespace import Z3C
 from ordf.namespace import FRESNEL
-from rdflib import Namespace, XSD, Literal
+from rdflib import Literal
 from z3c.form import field
 from zope.component import getUtility
 from zope.dottedname.resolve import resolve
@@ -11,7 +12,6 @@ from gu.z3cform.rdf.fresnel.fresnel import Lens, PropertyGroup, ID_CHAR_MAP
 from plone.z3cform.fieldsets.group import GroupFactory
 
 LOG = logging.getLogger(__name__)
-Z3C = Namespace(u"http://namespaces.zope.org/z3c/form#")
 
 
 def getLens(individual):

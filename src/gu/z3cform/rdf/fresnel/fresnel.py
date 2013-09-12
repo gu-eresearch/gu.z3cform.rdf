@@ -4,12 +4,11 @@ import string
 from ordf.graph import Graph
 from ordf.collection import Collection
 from ordf.namespace import FRESNEL, RDF
-from rdflib import Namespace, BNode
+from rdflib import BNode
 from gu.z3cform.rdf.vocabulary import SparqlInstanceVocabularyFactory
 from gu.z3cform.rdf.vocabulary import SparqlVocabularyFactory
+from gu.z3cform.rdf.namespace import Z3C
 from z3c.form.interfaces import DISPLAY_MODE, HIDDEN_MODE, INPUT_MODE
-
-Z3C = Namespace(u'http://namespaces.zope.org/z3c/form#')
 
 # TODO: this is used toconvert URLs to valid html-id's. maybe use proper
 #        url namespace prefix and replace only tho colon with _
