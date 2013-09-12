@@ -5,7 +5,7 @@
     xmlns:i18n="http://namespaces.zope.org/i18n"
     i18n_domain="gu.z3cform.rdf">
 
-    <!-- TODO: this here is needed for the tests to work 
+    <!-- TODO: this here is needed for the tests to work
     could do manual zope.component.provideAdapter calls in setUp
     instead -->
     <include package="zope.component" file="meta.zcml" />
@@ -43,5 +43,50 @@
     <class class="rdflib.graph.Graph">
         <implements interface=".interfaces.IGraph"/>
     </class>
+
+    <utility
+        component=".supermodel.RDFN3Handler"
+        name="gu.z3cform.rdf.schema.RDFN3Field"
+        />
+
+    <utility
+        component=".supermodel.RDFLiteralHandler"
+        name="gu.z3cform.rdf.schema.RDFLiteralField"
+        />
+
+    <utility
+        component=".supermodel.RDFLiteralLineHandler"
+        name="gu.z3cform.rdf.schema.RDFLiteralLineField"
+        />
+
+    <utility
+        component=".supermodel.RDFDateHandler"
+        name="gu.z3cform.rdf.schema.RDFDateField"
+        />
+
+    <utility
+        component=".supermodel.RDFDateRangeHandler"
+        name="gu.z3cform.rdf.schema.RDFDateRangeField"
+        />
+
+    <utility
+        component=".supermodel.RDFURIRefHandler"
+        name="gu.z3cform.rdf.schema.RDFURIRefField"
+        />
+
+    <utility
+        component=".supermodel.RDFURIChoiceHandler"
+        name="gu.z3cform.rdf.schema.RDFURIChoiceField"
+        />
+
+    <utility
+        component=".supermodel.RDFGroupedURIChoiceHandler"
+        name="gu.z3cform.rdf.schema.RDFGroupedURIChoiceField"
+        />
+
+    <utility
+        component=".supermodel.RDObjectHandler"
+        name="gu.z3cform.rdf.schema.RDFObjectField"
+        />
 
 </configure>
