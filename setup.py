@@ -54,6 +54,8 @@ REQUIRES = [
         'z3c.form',
         'rdflib',
         'z3c.formwidget.query',
+        'plone.z3cform',
+        'plone.supermodel', # TODO: optional?
         ]
 
 #if sys.version_info < (2, 7):
