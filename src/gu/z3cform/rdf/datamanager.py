@@ -3,8 +3,7 @@ from zope.schema.interfaces import IField, ICollection
 from zope.component import adapts, getUtility
 from z3c.form.interfaces import NO_VALUE
 from z3c.form.datamanager import DataManager
-from gu.z3cform.rdf.interfaces import IORDF, IRDFObjectField, IGraph, IRDFField
-from gu.repository.content.interfaces import IRepositoryMetadata
+from gu.z3cform.rdf.interfaces import IORDF, IRDFObjectField, IGraph, IRDFField, IGraph
 from plone.uuid.interfaces import IUUIDAware
 
 
@@ -120,7 +119,7 @@ class ContextGraphDataManager(GraphDataManager):
     adapts(IUUIDAware, IRDFField)
 
     def __init__(self, context, field):
-        self.graph = IRepositoryMetadata(context)
+        self.graph = IGraph(context)
         # FIXME: here we assume, the ordf storage model, that the Graph URI is the same as the individual URI
         self.subj = self.graph.identifier
         self.field = field

@@ -33,7 +33,7 @@ class IRDFLiteralField(IRDFField):
 
     rdftype = URI(title=u"Literal datatype",
                   required=False)
-    
+
     rdflang = TextLine(title=u"Literal language",
                        required=False)
 
@@ -44,7 +44,7 @@ class IRDFLiteralLineField(IRDFField):
     """
     rdftype = URI(title=u"Literal datatype",
                   required=False)
-    
+
     rdflang = TextLine(title=u"Literal language",
                        required=False)
 
@@ -69,7 +69,7 @@ class IRDFDateRangeField(IRDFField):
     Class: IRDFDateRangeField
 
     [IRDFDateRangeField description]
-    
+
 
     Extends: IRDFField
     """
@@ -123,7 +123,6 @@ class IGraph(Interface):
     pass
 
 
-    
 class IIndividual(Interface):
     """
     An RDF / OWL individual
@@ -144,4 +143,3 @@ class IIndividual(Interface):
     sameAs = Object(title=u"Same As",
                     description=u"Same As Individuals",
                     schema=Interface) #IIndividual)
-    
