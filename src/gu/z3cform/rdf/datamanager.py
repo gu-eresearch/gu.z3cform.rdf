@@ -33,7 +33,7 @@ class GraphDataManager(DataManager):
             # TODO: shall we use field.__name__ with a default url-prefix?
             self.prop = URIRef('http://fixeme.com/noprop')
         else:
-            self.prop = field.prop        
+            self.prop = field.prop
 
     def get(self):
         """Get the value.
@@ -54,7 +54,7 @@ class GraphDataManager(DataManager):
             if IRDFObjectField.providedBy(self.field.value_type):
                 # load ass subgraphs
                 # TODO: do I need to filter out empty graphs?
-                handler = getUtility(IORDF).getHandler()                                    
+                handler = getUtility(IORDF).getHandler()
                 # TODO: 3 possibilities here... we find it in current graph or in separate or we have to run a query
                 # Assume separate Graph here
                 value = [handler.get(v) for v in value]
@@ -63,7 +63,7 @@ class GraphDataManager(DataManager):
             # return only one value, the field doesn't support more anyway
             value = value[0]
             if IRDFObjectField.providedBy(self.field):
-                handler = getUtility(IORDF).getHandler()                                    
+                handler = getUtility(IORDF).getHandler()
                 value = handler.get(value)
             return value
         # TODO: check shoulde probably fail here or never reach?
@@ -83,6 +83,7 @@ class GraphDataManager(DataManager):
     def set(self, value):
         """Set the value"""
         # TODO: do we have to remove the referenced graphs as well? (in case of IRDFObjectField)
+        handler = getUtility(IORDF).getHandler()
         self.graph.remove((self.subj, self.prop, None))
         if value is None:
             return
@@ -92,14 +93,15 @@ class GraphDataManager(DataManager):
         for val in value:
             if val is not None:
                 # FIXME: check conversion of value to URIRef or Literal?
+                handler = getUtility(IORDF).getHandler()
                 if isinstance(val, Graph):
                     # a multivalue object field might send in a whole graph
                     self.graph.add((self.subj, self.prop, val.identifier))
                     # TODO: check why this is not managed by ContextGraphDataManagerForObjectFields
-                    handler = getUtility(IORDF).getHandler()                    
                     handler.put(val)
                 else:
                     self.graph.add((self.subj, self.prop, val))
+        handler.put(self.graph)
 
     def canAccess(self):
         """Can the value be accessed."""
@@ -129,4 +131,4 @@ class ContextGraphDataManager(GraphDataManager):
             # TODO: shall we use field.__name__ with a default url-prefix?
             self.prop = URIRef('http://fixeme.com/noprop')
         else:
-            self.prop = field.prop        
+            self.prop = field.prop
