@@ -8,7 +8,7 @@ from ordf.graph import Graph, _Graph
 from gu.z3cform.rdf.interfaces import IRDFN3Field, IRDFObjectField
 # FIXME: this is probably a circular import ...
 from gu.z3cform.rdf.widgets.interfaces import IRDFObjectWidget
-from gu.z3cform.rdf.fresnel.edit import FieldsFromLensMixin, getFieldsFromFresnelLens
+from gu.z3cform.rdf.fresnel import getFieldsFromFresnelLens
 from z3c.form.form import applyChanges
 import zope.interface
 import zope.schema
@@ -17,6 +17,7 @@ from z3c.form.interfaces import IFormAware
 from z3c.form import form
 from z3c.form.field import Fields
 import zope.component
+from zope.schema.interfaces import ICollection
 
 
 class RDFN3DataConverter(BaseDataConverter):
@@ -56,8 +57,27 @@ class RDFObjectConverter(BaseDataConverter):
 
         if value is self.field.missing_value:
             return NO_VALUE  # TODO: empty graph here?
+        # TODO there is no subform here yet?
+        #      z3c.form uses field schema .... we have a lens here
+        #      which could help
+
+        # TODO check whether we can get the widget to generate a form earlier?
+        #      or does it need the value to use the lens correctly?
         return value
-        # retval = {}
+
+        # TODO shall we convert do dict here, but we don't know the subform yet
+        # ret =  {}
+        # for field in self.widget.subform.fields.values():
+        #     # FIXME... check for field.prefix as well
+        #     if ICollection.providedBy(field):
+        #         ret[field.__name__] = list(value.objects(value.identifier, field.field.prop))
+        #     else:
+        #         ret[field.__name__] = value.value(value.identifier, field.field.prop)
+
+        # return ret
+
+
+            # retval = {}
         # # TODO: LOG this ... try to figure out all calls to _getForm and
         #                      setupFields.
         # #       the fields are defined by the lens + what's available on the
@@ -95,14 +115,14 @@ class RDFObjectConverter(BaseDataConverter):
         import uuid
 
         settings = getConfiguration().product_config.get('gu.plone.rdf', dict())
-        
+
         contenturi = "%s%s" % (settings.get('baseuri'), uuid.uuid1())
 
         identifier = URIRef(contenturi)
         obj = Graph(identifier=identifier)
 
-        for prop, data in value.predicate_objects(value.identifier):
-            obj.add((identifier, prop, data))
+        # for prop, data in value.predicate_objects(value.identifier):
+        #     obj.add((identifier, prop, data))
 
         # for key, data in value.items():
         #     # TODO: can data be a list?
@@ -156,6 +176,22 @@ class RDFObjectConverter(BaseDataConverter):
         #       Currently:
         #       -> any additional data in the current (obj) Graph will be removed and the Graph
         #          will be repopulated with data given in value. (otherwise removal of objects won't work)
+
+
+        #generate value graph from value dict:
+        oldval = value
+        value = Graph()
+        for key, val in oldval.items():
+            if val is None: # TODO: also check missing/NO_VALUE?
+                continue
+            field = self.widget.subform.fields[key]
+            # should I check field for ICollection?
+            if not isinstance(val, list) and not isinstance(val, tuple):
+                value.add((value.identifier, field.field.prop, val))
+            else:
+                for v in val:
+                    value.add((value.identifier, field.field.prop, v))
+
         # TODO: see also GraphDataManager
         # 1. remove changed props from obj (even those that don't exist in value)
         for prop in set(obj.predicates(obj.identifier, None)):
@@ -206,43 +242,10 @@ class RDFObjectConverter(BaseDataConverter):
             obj = None
         return obj
 
-
-class RDFObjectSubForm(FieldsFromLensMixin, form.BaseForm):
-    zope.interface.implements(ISubForm)
-
-    def __init__(self, context, request, parentWidget):
-        self.context = context
-        self.request = request
-        self.__parent__ = parentWidget
-        self.parentForm = parentWidget.form
-        self.ignoreContext = self.__parent__.ignoreContext
-        self.ignoreRequest = self.__parent__.ignoreRequest
-        if IFormAware.providedBy(self.__parent__):
-            self.ignoreReadonly = self.parentForm.ignoreReadonly
-        self.prefix = self.__parent__.name
-
-    def _validate(self):
-        for widget in self.widgets.values():
-            try:
-                # convert widget value to field value
-                converter = IDataConverter(widget)
-                value = converter.toFieldValue(widget.value)
-                # validate field value
-                zope.component.getMultiAdapter(
-                    (self.context,
-                     self.request,
-                     self.parentForm,
-                     getattr(widget, 'field', None),
-                     widget),
-                    IValidator).validate(value)
-            except (zope.schema.ValidationError, ValueError), error:
-                # on exception, setup the widget error message
-                view = zope.component.getMultiAdapter(
-                    (error, self.request, widget, widget.field,
-                     self.parentForm, self.context),
-                    IErrorViewSnippet)
-                view.update()
-                widget.error = view
+# FIXME: use extensible form here?
+from plone.z3cform.fieldsets.extensible import ExtensibleForm
+from z3c.form.object import ObjectSubForm
+class RDFObjectSubForm(ObjectSubForm):
 
     def setupFields(self):
         #self.__parent__.field.schema
@@ -255,16 +258,6 @@ class RDFObjectSubForm(FieldsFromLensMixin, form.BaseForm):
         else:
             self.fields = Fields()
 
-    def update(self):
-        if self.__parent__.field is None:
-            raise ValueError("%r .field is None, that's a blocking point" %
-                             self.__parent__)
-        #update stuff from parent to be sure
-        self.mode = self.__parent__.mode
-        self.setupFields()
-
-        super(RDFObjectSubForm, self).update()
-
     def getContent(self):
         # TODO: do I use self.context or parent.value here?
         val = self.__parent__._value
@@ -272,10 +265,4 @@ class RDFObjectSubForm(FieldsFromLensMixin, form.BaseForm):
             return Graph()
         if not isinstance(val, _Graph):
             return Graph()
-        return self.__parent__._value
-
-    def extractData(self, setErrors):
-        value, errors = super(RDFObjectSubForm, self).extractData(setErrors)
-        newval = Graph()
-        applyChanges(self, newval, value)
-        return newval, errors
+        return val
