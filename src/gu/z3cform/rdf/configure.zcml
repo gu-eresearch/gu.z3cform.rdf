@@ -85,7 +85,7 @@
         />
 
     <utility
-        component=".supermodel.RDObjectHandler"
+        component=".supermodel.RDFObjectHandler"
         name="gu.z3cform.rdf.schema.RDFObjectField"
         />
 
