@@ -9,6 +9,10 @@
     could do manual zope.component.provideAdapter calls in setUp
     instead -->
     <include package="zope.component" file="meta.zcml" />
+    <include package="zope.security" file="meta.zcml" />
+    <include package="z3c.form" file="meta.zcml" />
+    <include package="zope.i18n" file="meta.zcml" />
+    <include package="zope.i18n" />
     <include package="z3c.form" />
 
     <adapter

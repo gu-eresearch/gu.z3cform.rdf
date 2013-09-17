@@ -92,7 +92,6 @@ class GraphDataManager(DataManager):
         for val in value:
             if val is not None:
                 # FIXME: check conversion of value to URIRef or Literal?
-                handler = getUtility(IORDF).getHandler()
                 if isinstance(val, Graph):
                     # a multivalue object field might send in a whole graph
                     self.graph.add((self.subj, self.prop, val.identifier))

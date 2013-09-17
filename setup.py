@@ -63,7 +63,7 @@ REQUIRES = [
 
 TESTS_REQUIRE = [
     #'zope.testing',
-    'z3c.form [test,latest]',
+    'z3c.form [test]',
     ]
 
 setup(name='gu.z3cform.rdf',

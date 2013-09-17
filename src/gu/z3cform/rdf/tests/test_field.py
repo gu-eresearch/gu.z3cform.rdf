@@ -3,7 +3,7 @@ from rdflib import URIRef, Literal, BNode, Namespace
 
 EX = Namespace('http://example.com/namespace#')
 
-class RDFN3Tests(unittest.TestCase):
+class RDFN3Test(unittest.TestCase):
 
     def _getTargetClass(self):
         from gu.z3cform.rdf.schema import RDFN3Field

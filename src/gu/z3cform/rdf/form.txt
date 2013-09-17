@@ -126,7 +126,7 @@ We can also render the form, but we'll need a template to do so.
 
 Now we can actually render it.
 
-    >>> print addForm()
+    >>> print(addForm())
     <html xmlns="http://www.w3.org/1999/xhtml">
       <body>
         <form action=".">
@@ -155,7 +155,7 @@ We can also submit it.
 
     >>> addForm = Test1AddForm(root, request)
     >>> addForm.update()
-  
+
     >>> sorted(root)
     [u'jbloggs']
     >>> joe = root[u'jbloggs']
@@ -163,6 +163,8 @@ We can also submit it.
     u'jbloggs'
     >>> joe.name.n3()
     u'"Joe Bloggs"'
+    >>> isinstance(joe, Test1)
+    True
 
 Submit with error
 
@@ -183,7 +185,7 @@ Inspect the error and render the form
     <ErrorViewSnippet for RequiredMissing>
 
     >>> addTemplate(addForm)
-    >>> print addForm()
+    >>> print(addForm())
     <html xmlns="http://www.w3.org/1999/xhtml">
       <body>
         <i>There were some errors.</i>
@@ -219,13 +221,13 @@ about BNodes.
     ...     'form.widgets.name': u'Joe Bloggs',
     ...     'form.buttons.add': u'Add'}
     ...     )
-  
+
     >>> addForm = Test1AddForm(root, request)
     >>> addTemplate(addForm)
-  
+
 update and see how the form looks like:
 
-    >>> print addForm() # doctest: +NOPARSE_MARKUP
+    >>> print(addForm()) # doctest: +NOPARSE_MARKUP
     <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
     <html xmlns="http://www.w3.org/1999/xhtml">
       <body>
@@ -253,13 +255,13 @@ Let's try editing
 
     >>> editForm = Test1EditForm(root[u'jbloggs'], TestRequest())
     >>> addTemplate(editForm)
-    >>> print editForm()
+    >>> print(editForm())
     <html xmlns="http://www.w3.org/1999/xhtml">
       <body>
         <form action=".">
           <div class="row">
             <label for="form-widgets-id">ID</label>
-            <span id="form-widgets-id" class="text-widget required textline-field">jbloggs</span>
+            <span id="form-widgets-id" class="text-widget textline-field">jbloggs</span>
           </div>
           <div class="row">
             <label for="form-widgets-name">Name</label>
@@ -278,13 +280,13 @@ Submit it with changes:
     ...     'form.widgets.name': u'"Mary Bloggs"',
     ...     'form.buttons.apply': u'Apply',
     ...     })
-  
+
     >>> editForm = Test1EditForm(root[u'jbloggs'], request)
     >>> addTemplate(editForm)
     >>> editForm.update()
-    >>> print testing.render(editForm, './/xmlns:i')
+    >>> print(testing.render(editForm, './/xmlns:i'))
     <i>Data successfully updated.</i>
-  
+
     >>> joe = root[u'jbloggs']
     >>> joe.name.n3()
     u'"Mary Bloggs"'
@@ -297,24 +299,24 @@ We can also check for zope editing events
     ... def logEvent(event):
     ...     eventlog.append(event)
     >>> zope.component.provideHandler(logEvent)
-  
+
 Let's now submit the form again, successfully changing the age:
 
     >>> request = TestRequest(form={
     ...     'form.widgets.name': u'"Fred Bloggs"',
     ...     'form.buttons.apply': u'Apply'}
     ...     )
-  
+
     >>> editForm = Test1EditForm(root[u'jbloggs'], request)
     >>> addTemplate(editForm)
     >>> editForm.update()
-  
+
 We can now look at the event:
 
     >>> event = eventlog[-1]
     >>> event
     <zope...ObjectModifiedEvent object at ...>
-  
+
     >>> attrs = event.descriptions[0]
     >>> attrs.interface
     <InterfaceClass __builtin__.ITest1>
@@ -327,11 +329,11 @@ No change reporting in form:
     ...     'form.widgets.name': u'"Fred Bloggs"',
     ...     'form.buttons.apply': u'Apply'}
     ...     )
-  
+
     >>> editForm = Test1EditForm(root[u'jbloggs'], request)
     >>> addTemplate(editForm)
     >>> editForm.update()
-    >>> print testing.render(editForm, './/xmlns:i')
+    >>> print(testing.render(editForm, './/xmlns:i'))
     <i>No changes were applied.</i>
 
 
@@ -341,17 +343,17 @@ and there are also DisplayForms:
     ...     fields = field.Fields(ITest1)
     ...     template = ViewPageTemplateFile(
     ...         'simple_display.pt', os.path.dirname(tests.__file__))
-  
+
     >>> display = Test1DisplayForm(joe, TestRequest())
     >>> display.update()
-    >>> print display.render()
+    >>> print(display.render())
     <html xmlns="http://www.w3.org/1999/xhtml">
       <body>
         <div class="row">
-          <span id="form-widgets-id" class="text-widget required textline-field">jbloggs</span>
+          <span id="form-widgets-id" class="text-widget textline-field">jbloggs</span>
         </div>
         <div class="row">
-          <span id="form-widgets-name" class="textarea-widget required rdfn3field-field">&quot;Fred Bloggs&quot;</span>
+          <span id="form-widgets-name" class="textarea-widget rdfn3field-field">&quot;Fred Bloggs&quot;</span>
         </div>
       </body>
     </html>
@@ -364,20 +366,25 @@ Use rdflib graphs as form context
     >>> g = Graph(identifier=subject)
     >>> g.add((subject, FOAF['name'], Literal(u"Joe Bloggs")))
 
-    >>> g.id = g
-    >>> root[u'g'] = g
-    >>> g = root[u'g']
+Let our graph provide the ITest1 interface so that ITest1.id can be
+read/set on it
+
+    >>> zope.interface.directlyProvides(g, ITest1)
+
+    >>> g.id = "Joe Bloggs"
+    >>> root["Joe Bloggs"] = g
+    >>> g = root["Joe Bloggs"]
 
     >>> editForm = Test1EditForm(g, TestRequest())
     >>> addTemplate(editForm)
     >>> editForm.update()
-    >>> print editForm.render()
+    >>> print(editForm.render())
     <html xmlns="http://www.w3.org/1999/xhtml">
       <body>
         <form action=".">
           <div class="row">
             <label for="form-widgets-id">ID</label>
-            <span id="form-widgets-id" class="text-widget required textline-field"></span>
+            <span id="form-widgets-id" class="text-widget textline-field">Joe Bloggs</span>
           </div>
           <div class="row">
             <label for="form-widgets-name">Name</label>
@@ -399,14 +406,14 @@ Let's edit the graph:
     >>> editForm = Test1EditForm(g, request)
     >>> addTemplate(editForm)
     >>> editForm.update()
-    >>> print editForm.render()
+    >>> print(editForm.render())
     <html xmlns="http://www.w3.org/1999/xhtml">
       <body>
         <i>Data successfully updated.</i>
         <form action=".">
           <div class="row">
             <label for="form-widgets-id">ID</label>
-            <span class="text-widget required textline-field" id="form-widgets-id"></span>
+            <span class="text-widget textline-field" id="form-widgets-id">Joe Bloggs</span>
           </div>
           <div class="row">
             <label for="form-widgets-name">Name</label>
@@ -420,4 +427,3 @@ Let's edit the graph:
     </html>
     >>> g.value(subject, FOAF['name'])
     rdflib.term.Literal(u'Fred Bloggs')
-    
