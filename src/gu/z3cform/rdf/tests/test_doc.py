@@ -22,9 +22,12 @@ class MockIORDFUtility(object):
 
 
 def setUp(test):
-    import gu.z3cform.rdf
     testing.setUp(test)
-    # TODO: do I need to clean these registrations up again?
+    # load test setup
+    import gu.z3cform.rdf.tests
+    xmlconfig.XMLConfig('testing.zcml', gu.z3cform.rdf.tests)()
+    # load package configuration
+    import gu.z3cform.rdf
     xmlconfig.XMLConfig('configure.zcml', gu.z3cform.rdf)()
     provideUtility(MockIORDFUtility())
 
@@ -36,7 +39,7 @@ def test_suite():
         doctest.DocFileSuite(
             '../form.txt',
             setUp=setUp, tearDown=testing.tearDown,
-            optionflags=doctest.NORMALIZE_WHITESPACE|doctest.ELLIPSIS,
+            optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS,
             checker=checker,
             ),
     ))
