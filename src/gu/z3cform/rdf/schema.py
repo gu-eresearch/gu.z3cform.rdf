@@ -1,14 +1,17 @@
-from zope.interface import implements
-from zope.schema import Text, List, TextLine, URI, Choice, Set, Field, Date
-from rdflib import Literal, URIRef
+from zope.interface import implementer
+from zope.schema import Text, List, TextLine, Choice, Field, Date
+from zope.schema.fieldproperty import FieldProperty
+from zope.schema.interfaces import IObject
+from rdflib import Literal, URIRef, XSD
 from rdflib.util import from_n3
 from gu.z3cform.rdf.interfaces import IRDFN3Field, IRDFMultiValueField
 from gu.z3cform.rdf.interfaces import IRDFLiteralField, IRDFLiteralLineField
 from gu.z3cform.rdf.interfaces import IRDFURIRefField, IRDFChoiceField
 from gu.z3cform.rdf.interfaces import IRDFObjectField, IRDFDateField
-from gu.z3cform.rdf.interfaces import IRDFDateRangeField
+from gu.z3cform.rdf.interfaces import IRDFDateRangeField, IRDFField
 from gu.z3cform.rdf.vocabulary import SparqlTreeVocabularyFactory
-from ordf.namespace import XSD, DC
+from ordf.namespace import DC
+from gu.z3cform.rdf._bootstrap import URIRefField
 
 # TODO: for specialised fields like URIRef, or Literal field:
 #       in case there is data in the graph, that does not match the type
@@ -16,23 +19,19 @@ from ordf.namespace import XSD, DC
 #       if possible)
 
 
+@implementer(IRDFN3Field)
 class RDFN3Field(Text):
     """
     A field that knows how to handle n3 formatted values.
-
-    TODO: implement validation
     """
 
     _type = (Literal, URIRef)
 
-    prop = None
-
-    implements(IRDFN3Field)
+    prop = FieldProperty(IRDFField['prop'])
 
     def __init__(self, prop, **kw):
         super(RDFN3Field, self).__init__(**kw)
-        # TODO: should type check prop here. (how is z3c doing this? with
-        #       FieldProperty?)
+        # TODO:
         #       -> also check if __name__ is useful in case of ordf's ORM
         #       -> name might also be used as ID combined with default
         #          namespace
@@ -44,11 +43,14 @@ class RDFN3Field(Text):
         return value
 
 
+@implementer(IRDFLiteralField)
 class RDFLiteralField(Text):
 
-    implements(IRDFLiteralField)
-
     _type = Literal
+
+    prop = FieldProperty(IRDFField['prop'])
+    rdftype = FieldProperty(IRDFLiteralField['rdftype'])
+    rdflang = FieldProperty(IRDFLiteralField['rdflang'])
 
     def __init__(self, prop, rdftype=None, rdflang=None, **kw):
         super(RDFLiteralField, self).__init__(**kw)
@@ -64,11 +66,14 @@ class RDFLiteralField(Text):
         return value
 
 
+@implementer(IRDFLiteralLineField)
 class RDFLiteralLineField(TextLine):
 
-    implements(IRDFLiteralLineField)
-
     _type = Literal
+
+    prop = FieldProperty(IRDFField['prop'])
+    rdftype = FieldProperty(IRDFLiteralLineField['rdftype'])
+    rdflang = FieldProperty(IRDFLiteralLineField['rdflang'])
 
     def __init__(self, prop, rdftype=None, rdflang=None, **kw):
         super(RDFLiteralLineField, self).__init__(**kw)
@@ -84,9 +89,11 @@ class RDFLiteralLineField(TextLine):
         return value
 
 
+@implementer(IRDFDateField)
 class RDFDateField(Date):
 
-    implements(IRDFDateField)
+    prop = FieldProperty(IRDFField['prop'])
+    rdftype = FieldProperty(IRDFDateField['rdftype'])
 
     def __init__(self, prop, **kw):
         super(RDFDateField, self).__init__(**kw)
@@ -94,7 +101,6 @@ class RDFDateField(Date):
         #       fromUnicode
         self.prop = prop
         self.rdftype = XSD['date']
-        self.rdflang = None
 
     def fromUnicode(self, str):
         value = Literal(str, datatype=self.rdftype)
@@ -120,16 +126,17 @@ class RDFDateField(Date):
         super(RDFDateField, self).set(object, value)
 
 
+@implementer(IRDFDateRangeField)
 class RDFDateRangeField(RDFN3Field):
 
-    implements(IRDFDateRangeField)
+    prop = FieldProperty(IRDFField['prop'])
+    rdftype = FieldProperty(IRDFDateRangeField['rdftype'])
 
     def __init__(self, prop, **kw):
         super(RDFDateRangeField, self).__init__(prop=prop, **kw)
         # TODO: ensure only rdftype or rdflang is given and use these values in
         #       fromUnicode
         self.rdftype = DC['Period']
-        self.rdflang = None
 
     def fromUnicode(self, str):
         value = Literal(str, datatype=self.rdftype)
@@ -143,74 +150,68 @@ class RDFDateRangeField(RDFN3Field):
         return super(RDFDateRangeField, self).validate(value)
 
 
-class RDFURIRefField(URI):
+@implementer(IRDFURIRefField)
+class RDFURIRefField(URIRefField):
 
-    implements(IRDFURIRefField)
-
-    _type = URIRef
+    prop = FieldProperty(IRDFField['prop'])
 
     def __init__(self, prop, **kw):
         super(RDFURIRefField, self).__init__(**kw)
-        # TODO: should type check prop here. (how is z3c doing this? with
-        #       FieldProperty?)
+        # TODO:
         #       -> also check if __name__ is useful in case of ordf's ORM
         #       -> name might also be used as ID combined with default
         #          namespace
         self.prop = prop
 
-    def fromUnicode(self, str):
-        value = URIRef(str)
-        self.validate(value)
-        return value
 
-
+@implementer(IRDFMultiValueField)
 class RDFMultiValueField(List):
 
-    implements(IRDFMultiValueField)
+    prop = FieldProperty(IRDFField['prop'])
 
     def __init__(self, prop, **kw):
         super(RDFMultiValueField, self).__init__(**kw)
-        # TODO: should type check prop here. (how is z3c doing this? with
-        #       FieldProperty?)
+        # TODO:
         #       -> also check if __name__ is useful in case of ordf's ORM
         #       -> name might also be used as ID combined with default
         #          namespace
         self.prop = prop
 
 
+@implementer(IRDFChoiceField)
 class RDFURIChoiceField(Choice):
 
-    implements(IRDFChoiceField)
+    prop = FieldProperty(IRDFField['prop'])
 
     def __init__(self, prop, **kw):
         super(RDFURIChoiceField, self).__init__(**kw)
         self.prop = prop
 
 
+@implementer(IRDFChoiceField)
 class RDFGroupedURIChoiceField(Choice):
     # FIXME: have a separate class now for tree vocabulary backed field ...
     #        can register default widget for it. (don't need widgetFactory
     #        in fresnel defs.)
 
-    implements(IRDFChoiceField)
+    prop = FieldProperty(IRDFField['prop'])
 
     def __init__(self, prop, classuri, **kw):
         kw['vocabulary'] = SparqlTreeVocabularyFactory()(classuri)
         super(RDFGroupedURIChoiceField, self).__init__(**kw)
         self.prop = prop
 
-from zope.schema.interfaces import IObject
 
-
+@implementer(IRDFObjectField, IObject)
 class RDFObjectField(Field):
     # Implement IObject to trigger special handling on
     # z3c.form.form.applyChanges
-    implements(IRDFObjectField, IObject)
 
-    classuri = None
+    prop = FieldProperty(IRDFField['prop'])
+
+    classuri = FieldProperty(IRDFObjectField['classuri'])
 
     def __init__(self, prop, **kw):  # classuri, **kw):
-        #self.classuri = classuri
         self.classuri = kw.pop('classuri', None)
         super(RDFObjectField, self).__init__(**kw)
         self.prop = prop
