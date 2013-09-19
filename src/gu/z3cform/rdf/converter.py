@@ -1,23 +1,18 @@
 from zope.component import adapts, getUtility
 import zope.schema.interfaces
-from z3c.form.interfaces import IWidget, NO_VALUE, IDataManager, IDataConverter
+from z3c.form.interfaces import IWidget, NO_VALUE, IDataManager
 from z3c.form.converter import BaseDataConverter
 from rdflib.util import from_n3
-from rdflib import URIRef
 from ordf.graph import Graph, _Graph
 from gu.z3cform.rdf.interfaces import IRDFN3Field, IRDFObjectField
-# FIXME: this is probably a circular import ...
 from gu.z3cform.rdf.widgets.interfaces import IRDFObjectWidget
 from gu.z3cform.rdf.fresnel import getFieldsFromFresnelLens
-from z3c.form.form import applyChanges
+from gu.z3cform.rdf.interfaces import IORDF
+from z3c.form.object import ObjectSubForm
 import zope.interface
 import zope.schema
-from z3c.form.interfaces import ISubForm, IValidator, IErrorViewSnippet
-from z3c.form.interfaces import IFormAware
-from z3c.form import form
 from z3c.form.field import Fields
 import zope.component
-from zope.schema.interfaces import ICollection
 
 
 class RDFN3DataConverter(BaseDataConverter):
@@ -52,103 +47,37 @@ class RDFObjectConverter(BaseDataConverter):
 
     def toWidgetValue(self, value):
         """Just dispatch it."""
+        # value sholud always be a Graph here
 
-        # convert entire value / graph into  a dictionary
+        # There is an asymmetry here. toWidgetValue get's a graph and
+        # passes this graph on to the widget. The widget is expected
+        # to work from the graph directly.
+        # However, when the widget processes a request it generates a
+        # dictionary as value, which will be passed into toFieldValue.
+        # Unfortunatel we can't just generate a dictionary here, because
+        # we don't know yet the fields in the widgets subform. Without fields
+        # we have no clue which values to map to which field names.
 
         if value is self.field.missing_value:
             return NO_VALUE  # TODO: empty graph here?
-        # TODO there is no subform here yet?
-        #      z3c.form uses field schema .... we have a lens here
-        #      which could help
-
-        # TODO check whether we can get the widget to generate a form earlier?
-        #      or does it need the value to use the lens correctly?
         return value
 
-        # TODO shall we convert do dict here, but we don't know the subform yet
-        # ret =  {}
-        # for field in self.widget.subform.fields.values():
-        #     # FIXME... check for field.prefix as well
-        #     if ICollection.providedBy(field):
-        #         ret[field.__name__] = list(value.objects(value.identifier, field.field.prop))
-        #     else:
-        #         ret[field.__name__] = value.value(value.identifier, field.field.prop)
-
-        # return ret
-
-
-            # retval = {}
-        # # TODO: LOG this ... try to figure out all calls to _getForm and
-        #                      setupFields.
-        # #       the fields are defined by the lens + what's available on the
-        #         content object. so we can create the subform, and let it do
-        #         it's job get a full field list
-        # if self.widget.subform is  None:
-        #     self.widget._getForm(value)
-        #     self.widget.subform.setupFields()
-        # for name in self.widget.subform.fields:
-        #     # TODO: maybe try te get field from somewhere else ... e.g. Lens?
-        #             we need schema.field not form.field here
-        #     dm = zope.component.getMultiAdapter(
-        #         (value, self.widget.subform.fields[name].field),IDataManager)
-        #     retval[name] = dm.query()
-
-        # return retval
-
     def createObject(self, value):
-        #keep value passed, maybe some subclasses want it
-        #value here is the raw extracted from the widget's subform
-        #in the form of a dict key:fieldname, value:fieldvalue
-
-        # FIXME: this code is too much plone dependent ....
-        #        need to move the default URI-prefix-setting to this package.
-        #        (possibly whole create new unique uri to IORDF tool)
-        #        other possibility would be to provide overridable factory to
-        #        create new named graphs...(doesn't solve uri prefix setting)
-
-        # TODO: should I try to load something here?
-        #       or do I just apply data?
-        # FIXME: make this here independent of Zope2 !!!!!
-        #        maybe override component for Zope2 and do something better here?
-        #        also dependency on gu.plone.rdf is bad here (prob. need a Utility here)
-        from App.config import getConfiguration
-        import uuid
-
-        settings = getConfiguration().product_config.get('gu.plone.rdf', dict())
-
-        contenturi = "%s%s" % (settings.get('baseuri'), uuid.uuid1())
-
-        identifier = URIRef(contenturi)
+        # This is being used by toFieldValue. We ignore the value
+        # here and let toFieldValue apply whatever necessary
+        ordftool = getUtility(IORDF)
+        identifier = ordftool.generateURI()
         obj = Graph(identifier=identifier)
-
-        # for prop, data in value.predicate_objects(value.identifier):
-        #     obj.add((identifier, prop, data))
-
-        # for key, data in value.items():
-        #     # TODO: can data be a list?
-        #     if data is not None:
-        #         obj.add((identifier, URIRef(key), data))
-
-        # name = getIfName(self.field.schema)
-        # creator = zope.component.queryMultiAdapter(
-        #     (self.widget.context, self.widget.request,
-        #      self.widget.form, self.widget),
-        #     interfaces.IObjectFactory,
-        #     name=name)
-        # if creator:
-        #     obj = creator(value)
-        # else:
-        #     raise ValueError("No IObjectFactory adapter registered for %s" %
-        #                      name)
         return obj
 
     def toFieldValue(self, value):
         """field value is an Object type, that provides field.schema"""
+        # we should always get a dict as value here
         if value is NO_VALUE:
             return self.field.missing_value
 
         if self.widget.subform is None:
-            #creepy situation when the widget is hanging in nowhere
+            # creepy situation when the widget is hanging in nowhere
             obj = self.createObject(value)
         else:
             if self.widget.subform.ignoreContext:
@@ -157,6 +86,7 @@ class RDFObjectConverter(BaseDataConverter):
                 dm = zope.component.getMultiAdapter(
                     (self.widget.context, self.field), IDataManager)
                 try:
+                    # we should get the sub object from the same graph
                     obj = dm.get()
                 except KeyError:
                     obj = self.createObject(value)
@@ -164,21 +94,10 @@ class RDFObjectConverter(BaseDataConverter):
                     obj = self.createObject(value)
 
         if obj is None or obj == self.field.missing_value:
-            #if still None create one, otherwise following will burp
+            # if still None create one, otherwise following will burp
             obj = self.createObject(value)
 
-        names = []
-        # TODO: find another way to solve property removal:
-        #       maybe it's possible to go through serf.widget.subform.fields to get fieldnames this subform operates on
-        #       -> how to remove a subgraph completely? there is always the latest changeset included therefore
-        #          the graph will never be empty and the object will always hold a reference to the subgraph (problem or not?)
-        #
-        #       Currently:
-        #       -> any additional data in the current (obj) Graph will be removed and the Graph
-        #          will be repopulated with data given in value. (otherwise removal of objects won't work)
-
-
-        #generate value graph from value dict:
+        # convert dictionary to graph
         oldval = value
         value = Graph()
         for key, val in oldval.items():
@@ -192,14 +111,18 @@ class RDFObjectConverter(BaseDataConverter):
                 for v in val:
                     value.add((value.identifier, field.field.prop, v))
 
-        # TODO: see also GraphDataManager
+        names = []
+        # FIXME: use DataManager possibly loop over all fields?
         # 1. remove changed props from obj (even those that don't exist in value)
         for prop in set(obj.predicates(obj.identifier, None)):
+            # TODO: check whethe I am comparing generators here
+            #       maybe use set() to compare unordered list?
             if obj.objects(obj.identifier, prop) != value.objects(value.identifier, prop):
                 # property has been changed ... remove it
                 names.append(prop)
                 obj.remove((obj.identifier, prop, None))
         # 2. update possible changes and add new props from value
+        # TODO: this looks doubled up to step 1
         for prop in set(value.predicates(value.identifier, None)):
             if obj.objects(obj.identifier, prop) != value.objects(value.identifier, prop):
                 if prop not in names:
@@ -242,13 +165,10 @@ class RDFObjectConverter(BaseDataConverter):
             obj = None
         return obj
 
-# FIXME: use extensible form here?
-from plone.z3cform.fieldsets.extensible import ExtensibleForm
-from z3c.form.object import ObjectSubForm
+
 class RDFObjectSubForm(ObjectSubForm):
 
     def setupFields(self):
-        #self.__parent__.field.schema
         context = self.getContent()
         lens = self.__parent__.field.lens
         if lens is not None:
@@ -259,7 +179,6 @@ class RDFObjectSubForm(ObjectSubForm):
             self.fields = Fields()
 
     def getContent(self):
-        # TODO: do I use self.context or parent.value here?
         val = self.__parent__._value
         if val == NO_VALUE:
             return Graph()
