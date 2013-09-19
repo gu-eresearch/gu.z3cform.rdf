@@ -195,3 +195,11 @@ class IIndividual(Interface):
         description=u"Same As Individuals",
         schema=Interface  # IIndividual
         )
+
+
+class IRDFTypeMapper(Interface):
+
+    def applyTypes(graph):
+        """
+        update rdf:type information in graph
+        """
