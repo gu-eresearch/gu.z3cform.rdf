@@ -6,14 +6,13 @@ from gu.z3cform.rdf.widgets.interfaces import IRDFObjectWidget
 from gu.z3cform.rdf.interfaces import IRDFObjectField
 from zope.component import queryMultiAdapter, adapter, getMultiAdapter
 from zope.pagetemplate.interfaces import IPageTemplate
-from zope.interface import implements, implementer
+from zope.interface import implementer
 from zope.schema import ValidationError
 from z3c.form.error import MultipleErrors
 
 
+@implementer(IRDFObjectWidget)
 class RDFObjectWidget(ObjectWidget):
-
-    implements(IRDFObjectWidget)
 
     def _getForm(self, content):
         form = getattr(self, 'form', None)
@@ -84,16 +83,12 @@ class RDFObjectWidget(ObjectWidget):
 
             # ensure that we apply our new values to the widgets
             # TODO: check,. this sholud already be applied in updateWidgets?
-            # import ipdb; ipdb.set_trace()
             # if value is not NO_VALUE:
             #     for name in self.subform.fields:  #zope.schema.getFieldNames(self.field.schema):
             #         self.applyValue(self.subform.widgets[name],
             #                         value.get(name, NO_VALUE))
 
         return property(get, set)
-
-
-
 
 
 @adapter(IRDFObjectField, IFormLayer)
