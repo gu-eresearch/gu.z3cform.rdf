@@ -153,13 +153,13 @@ class IORDF(Interface):
         return an initialised ORDF handler.
         """
 
-    def getFresnel(self):
+    def getFresnel():
         """ return a pre-compiled Fresnel implementation """
 
-    def getBaseURI(self):
+    def getBaseURI():
         """ return the base uri to be used for all content """
 
-    def genereateURI(self):
+    def generateURI():
         """ generate a new unique uri using base uri """
 
 
