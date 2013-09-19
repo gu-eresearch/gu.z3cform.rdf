@@ -3,7 +3,7 @@ from zope.interface import Interface, implementer
 from zope.component import adapter
 from gu.z3cform.rdf.interfaces import IRDFObjectField
 from gu.z3cform.rdf.widgets.interfaces import IRDFObjectWidget
-from gu.z3cform.rdf.converter import BaseDataConverter, RDFObjectSubForm
+from gu.z3cform.rdf.converter import RDFObjectSubForm
 
 
 @implementer(ISubformFactory)
