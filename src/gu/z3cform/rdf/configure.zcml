@@ -39,6 +39,13 @@
         factory=".object.SubformAdapter"
         />
 
+    <adapter
+        for="zope.interface.Interface
+             z3c.form.interfaces.IFormLayer
+             z3c.form.interfaces.IAddForm"
+        factory=".converter.RDFTypeMapper"
+    />
+
     <utility
         name="gu.z3cform.rdf.GraphVocabulary"
         factory=".vocabulary.GraphVocabularyFactory"

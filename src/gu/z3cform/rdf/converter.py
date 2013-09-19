@@ -4,13 +4,14 @@ from z3c.form.interfaces import IWidget, NO_VALUE, IDataManager
 from z3c.form.converter import BaseDataConverter
 from rdflib.util import from_n3
 from ordf.graph import Graph, _Graph
-from gu.z3cform.rdf.interfaces import IRDFN3Field, IRDFObjectField
+from gu.z3cform.rdf.interfaces import IRDFN3Field, IRDFObjectField, IRDFTypeMapper
 from gu.z3cform.rdf.widgets.interfaces import IRDFObjectWidget
 from gu.z3cform.rdf.fresnel import getFieldsFromFresnelLens
 from gu.z3cform.rdf.interfaces import IORDF
 from z3c.form.object import ObjectSubForm
 import zope.interface
 import zope.schema
+from zope.interface import implementer
 from z3c.form.field import Fields
 import zope.component
 from ordf.namespace import FRESNEL
@@ -194,3 +195,15 @@ class RDFObjectSubForm(ObjectSubForm):
         if not isinstance(val, _Graph):
             return Graph()
         return val
+
+
+@implementer(IRDFTypeMapper)
+class RDFTypeMapper(object):
+
+    def __init__(self, context, request, form):
+        self.context = context
+        self.request = request
+        self.form = form
+
+    def applyTypes(self, graph):
+        graph.add((graph.identifier, RDF['type'], self.form.rdftype))
