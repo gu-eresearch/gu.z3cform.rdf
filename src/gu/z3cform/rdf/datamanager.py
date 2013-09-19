@@ -30,7 +30,7 @@ class GraphDataManager(DataManager):
         if not hasattr(field, 'prop'):
             import ipdb; ipdb.set_trace()
             # TODO: shall we use field.__name__ with a default url-prefix?
-            self.prop = URIRef('http://fixeme.com/noprop')
+            self.prop = URIRef('http://fixme.com/noprop')
         else:
             self.prop = field.prop
 
