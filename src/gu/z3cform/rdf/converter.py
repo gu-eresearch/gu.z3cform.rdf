@@ -13,6 +13,8 @@ import zope.interface
 import zope.schema
 from z3c.form.field import Fields
 import zope.component
+from ordf.namespace import FRESNEL
+from rdflib import RDF
 
 
 class RDFN3DataConverter(BaseDataConverter):
@@ -110,7 +112,14 @@ class RDFObjectConverter(BaseDataConverter):
             else:
                 for v in val:
                     value.add((value.identifier, field.field.prop, v))
+        # apply rdf:type from Lens
+        # TODO: maybe datamanager could do this?
+        #       here it assumes there is a classLensDomain in use
+        lens = self.widget.field.lens
+        rdftype = lens.value(lens.identifier, FRESNEL['classLensDomain'])
+        value.add((value.identifier, RDF['type'], rdftype))
 
+        # apply new values and track changed properties
         names = []
         # FIXME: use DataManager possibly loop over all fields?
         # 1. remove changed props from obj (even those that don't exist in value)
