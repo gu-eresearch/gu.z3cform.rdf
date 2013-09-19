@@ -99,6 +99,9 @@ class GraphDataManager(DataManager):
                     handler.put(val)
                 else:
                     self.graph.add((self.subj, self.prop, val))
+        # TODO: this assumes, that we are really going to put data into the store
+        #       how about add forms? this will already happen during object creation
+        #       and not when actually calling add() on addforms
         handler.put(self.graph)
 
     def canAccess(self):
