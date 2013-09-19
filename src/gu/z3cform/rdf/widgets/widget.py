@@ -8,10 +8,11 @@ from gu.z3cform.rdf.widgets.interfaces import IGroupedSelectWidget
 from zope.schema.interfaces import ITitledTokenizedTerm
 from zope.i18n import translate
 
+
 class OrderedGroupedSelectWidget(OrderedSelectWidget):
 
     items = None
-    
+
     def update(self):
         super(OrderedSelectWidget, self).update()
         widget.addFieldClass(self)
@@ -24,7 +25,7 @@ class OrderedGroupedSelectWidget(OrderedSelectWidget):
             for count, token in enumerate(self.value)]
         self.notselectedItems = self.deselect()
 
-        
+
 class GroupedSelectWidget(SelectWidget):
 
     implements(IGroupedSelectWidget)
@@ -96,7 +97,7 @@ def GroupedSelectFieldWidget(field, request):
     widget.multiple = 'multiple'
     return widget
 
-        
+
 # @zope.component.adapter(
 #     zope.schema.interfaces.IUnorderedCollection,
 #     zope.schema.interfaces.IChoice, interfaces.IFormLayer)

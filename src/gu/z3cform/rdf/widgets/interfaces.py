@@ -7,10 +7,9 @@ from zope.interface import Interface
 #     pass
 
 
-
-
 class IGroupedSelectWidget(Interface):
     pass
+
 
 class IRDFObjectWidget(Interface):
     pass

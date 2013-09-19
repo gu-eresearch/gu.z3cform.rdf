@@ -141,6 +141,8 @@ class IRDFObjectField(IRDFField):
         )
 
 
+# Tools and objects
+
 class IORDF(Interface):
     """
     Utility interface to get configured ORDF handler.
