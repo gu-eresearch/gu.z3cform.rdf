@@ -151,8 +151,14 @@ class IORDF(Interface):
         return an initialised ORDF handler.
         """
 
-    def getFresnelGraph(self):
+    def getFresnel(self):
         """ return a pre-compiled Fresnel implementation """
+
+    def getBaseURI(self):
+        """ return the base uri to be used for all content """
+
+    def genereateURI(self):
+        """ generate a new unique uri using base uri """
 
 
 class IGraph(Interface):
