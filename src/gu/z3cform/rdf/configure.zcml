@@ -32,6 +32,13 @@
         provides="gu.z3cform.rdf.interfaces.IIndividual"
         />
 
+    <adapter
+        factory=".formextender.RDFFormExtender" />
+
+    <adapter
+        factory=".object.SubformAdapter"
+        />
+
     <utility
         name="gu.z3cform.rdf.GraphVocabulary"
         factory=".vocabulary.GraphVocabularyFactory"
