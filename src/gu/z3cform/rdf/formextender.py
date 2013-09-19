@@ -1,11 +1,12 @@
 import logging
 from zope.interface import Interface
-from zope.component import adapter
+from zope.component import adapter, getMultiAdapter
 from plone.z3cform.fieldsets.extensible import FormExtender
 from z3c.form.interfaces import IFormLayer
-from gu.z3cform.rdf.interfaces import IIndividual, IGraph
+from gu.z3cform.rdf.interfaces import IIndividual, IGraph, IRDFTypeMapper
 from gu.z3cform.rdf.fresnel import getLens
 from gu.z3cform.rdf.fresnel import getFieldsFromFresnelLens
+from ordf.graph import Graph
 
 LOG = logging.getLogger(__name__)
 
@@ -32,20 +33,9 @@ class RDFFormExtender(FormExtender):
         #        or separate formextenders for Add, edit, display
         if IAddForm.providedBy(self.form):
             # the form context is the container ...
-            # FIXME: need e generic pluggable way to find rdf:type for object to generate
-            rdftype = getattr(self.form, 'rdftype', None)
-            from ordf.namespace import FOAF, OWL, RDF
-            if rdftype is None:
-                pt = self.form.portal_type
-                from gu.plone.rdf.namespace import CVOCAB
-                typemap = {'org.bccvl.content.user': FOAF['Person'],
-                           'org.bccvl.content.group': FOAF['Group'],
-                           'gu.repository.content.RepositoryItem': CVOCAB['Item'],
-                           'gu.repository.content.RepositoryContainer': CVOCAB['Collection']}
-                rdftype = typemap.get(pt, OWL['Thing'])
-            from ordf.graph import Graph
+            tm = getMultiAdapter((self.context, self.request, self.form), IRDFTypeMapper)
             graph = Graph()
-            graph.add((graph.identifier, RDF['type'], rdftype))
+            tm.applyTypes(graph)
         else:
             graph = IGraph(self.context, None)
         if graph is None:
@@ -64,17 +54,14 @@ class RDFFormExtender(FormExtender):
             LOG.info("adding field %s", field.__name__)
             self.add(field)
         for group in groups:
-            LOG.info("process group: %s", group.label )
+            LOG.info("process group: %s", group.label)
             for field in group.fields.values():
                 LOG.info("adding field %s", field.__name__)
                 self.add(field)
                 self.add(field, group=group.label)
 
-
-
         # processFields(self.form, iface)
         # processFieldMoves(self.form, iface)
-        pass
 
 
 def example_extender_code(self):
