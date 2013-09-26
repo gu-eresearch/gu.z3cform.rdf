@@ -2,6 +2,7 @@ import logging
 from zope.interface import Interface
 from zope.component import adapter, getMultiAdapter
 from plone.z3cform.fieldsets.extensible import FormExtender
+from plone.z3cform.fieldsets.interfaces import IExtensibleForm
 from z3c.form.interfaces import IFormLayer
 from gu.z3cform.rdf.interfaces import IIndividual, IGraph, IRDFTypeMapper
 from gu.z3cform.rdf.fresnel import getLens
@@ -12,7 +13,7 @@ LOG = logging.getLogger(__name__)
 
 
 # context, request, form
-@adapter(Interface, IFormLayer, Interface)
+@adapter(Interface, IFormLayer, IExtensibleForm)
 class RDFFormExtender(FormExtender):
 
     def update(self):
