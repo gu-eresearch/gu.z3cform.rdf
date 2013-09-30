@@ -59,9 +59,11 @@ class SparqlTreeVocabularyFactory(object):
         h = getUtility(IORDF).getHandler()
         r = h.query("select distinct ?uri ?title "
                     "Where "
-                    "{ ?uri a %s . "
-                    "  optional { ?uri <http://www.w3.org/2000/01/rdf-schema#label> ?title . }"
-                    "  filter ( !isBlank(?uri) ) "
+                    "{ Graph?g "
+                    "  { ?uri a %s . "
+                    "    optional { ?uri <http://www.w3.org/2000/01/rdf-schema#label> ?title . }"
+                    "    filter ( !isBlank(?uri) ) "
+                    "  }"
                     "} "
                     "order by ?title"
                     % context.n3())
@@ -90,9 +92,11 @@ class SparqlInstanceVocabularyFactory(object):
         h = getUtility(IORDF).getHandler()
         r = h.query("select distinct ?uri ?title "
                     "Where "
-                    "{ ?uri a %s . "
-                    "  optional { ?uri <http://www.w3.org/2000/01/rdf-schema#label> ?title . }"
-                    "  filter ( !isBlank(?uri) ) "
+                    "{ Graph?g "
+                    "  { ?uri a %s . "
+                    "    optional { ?uri <http://www.w3.org/2000/01/rdf-schema#label> ?title . }"
+                    "    filter ( !isBlank(?uri) ) "
+                    "  }"
                     "} "
                     "order by ?title"
                     % context.n3())
