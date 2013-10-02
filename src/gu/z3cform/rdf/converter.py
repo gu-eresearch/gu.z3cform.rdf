@@ -3,7 +3,8 @@ from z3c.form.interfaces import IWidget, NO_VALUE, IDataManager
 from z3c.form.converter import BaseDataConverter
 from rdflib.util import from_n3
 from ordf.graph import Graph, _Graph
-from gu.z3cform.rdf.interfaces import IRDFN3Field, IRDFObjectField, IRDFTypeMapper
+from gu.z3cform.rdf.interfaces import (IRDFN3Field, IRDFObjectField,
+                                       IRDFTypeMapper)
 from gu.z3cform.rdf.widgets.interfaces import IRDFObjectWidget
 from gu.z3cform.rdf.fresnel import getFieldsFromFresnelLens
 from gu.z3cform.rdf.interfaces import IORDF
@@ -13,6 +14,7 @@ from zope.component import adapter
 from z3c.form.field import Fields
 from ordf.namespace import FRESNEL
 from rdflib import RDF
+from zope.schema.interfaces import ICollection
 
 
 @adapter(IRDFN3Field, IWidget)
@@ -101,7 +103,13 @@ class RDFObjectConverter(BaseDataConverter):
                     (self.widget.context, self.field), IDataManager)
                 try:
                     # we should get the sub object from the same graph
-                    obj = dm.get()
+                    data = dm.get()
+                    # have to make a copy here, so that form apply can
+                    # compare to the originally retrieved graph
+                    obj = Graph(identifier=data.identifier)
+                    # TODO: make it quad aware
+                    for t in data:
+                        obj.add(t)
                 except KeyError:
                     obj = self.createObject(value)
                 except AttributeError:
@@ -118,29 +126,20 @@ class RDFObjectConverter(BaseDataConverter):
         rdftype = lens.value(lens.identifier, FRESNEL['classLensDomain'])
         obj.add((obj.identifier, RDF['type'], rdftype))
 
-        names = []
-        # should get fields from lens instead of subform
+        # TODO: should get fields from lens instead of subform
         for name in self.widget.subform.fields:
             try:
-                dm = getMultiAdapter(
-                    (obj, self.widget.subform.fields[name].field),
-                     IDataManager)
-                oldval = dm.query()
-                if oldval != value[name]:
-                    # TODO: z3c.form always updates if current field
-                    #    is an objectwidget should I do here the same?
-                    #    (need testcase for objectwidget within
-                    #    objecwidget)
-                    dm.set(value[name])
-                    names.append(name)
+                field = self.widget.subform.fields[name].field
+                data = value[name]
+                if not ICollection.providedBy(field):
+                    data = [data]
+                for val in data:
+                    obj.remove((obj.identifier, field.prop, None))
+                    if val is not None:
+                        obj.add((obj.identifier, field.prop, val))
             except KeyError:
                 pass
-
-        # TODO: notify on changes
-        # if names:
-        #     zope.event.notify(
-        #         zope.lifecycleevent.ObjectModifiedEvent(obj,
-        #             zope.lifecycleevent.Attributes(self.field.schema, *names)))
+        # TODO: where am I going to do the ObjectModified event with subforms?
 
         # Commonly the widget context is security proxied. This method,
         # however, should return a bare object, so let's remove the
@@ -148,13 +147,10 @@ class RDFObjectConverter(BaseDataConverter):
         # mechanism.
         # return removeSecurityProxy(obj)
 
-        if len(obj) == 0:
-            # TODO: if we have an empty graph then return None
-            #       or should the datamanager.GraphDataManagerForObjectFields take care of this?
-            obj = None
         return obj
 
 
+# TODO: move somewhere else
 class RDFObjectSubForm(ObjectSubForm):
 
     def setupFields(self):
@@ -176,6 +172,7 @@ class RDFObjectSubForm(ObjectSubForm):
         return val
 
 
+# TODO: move somewhere else
 @implementer(IRDFTypeMapper)
 class RDFTypeMapper(object):
 
