@@ -26,6 +26,16 @@ class IRDFN3Field(IRDFField):
     """
 
 
+class IRDFDataPropertyField(IRDFField):
+
+    pass
+
+
+class IRDFObjectPropertyField(IRDFField):
+
+    pass
+
+
 class IRDFMultiValueField(IRDFField):
     """Field that stores a multiple values of the same property.
 
@@ -37,7 +47,7 @@ class IRDFMultiValueField(IRDFField):
     """
 
 
-class IRDFLiteralField(IRDFField):
+class IRDFLiteralField(IRDFDataPropertyField):
     """
     A field handling multiline rdflib Literals
     """
@@ -53,7 +63,7 @@ class IRDFLiteralField(IRDFField):
         )
 
 
-class IRDFLiteralLineField(IRDFField):
+class IRDFLiteralLineField(IRDFDataPropertyField):
     """
     A field handling rdflib Literals
     """
@@ -68,7 +78,7 @@ class IRDFLiteralLineField(IRDFField):
         )
 
 
-class IRDFDateField(IRDFField):
+class IRDFDateField(IRDFDataPropertyField):
     """
 
     Class: IRDFDateField
@@ -89,7 +99,7 @@ class IRDFDateField(IRDFField):
         )
 
 
-class IRDFDateRangeField(IRDFField):
+class IRDFDateRangeField(IRDFDataPropertyField):
     """
 
     Class: IRDFDateRangeField
@@ -107,7 +117,7 @@ class IRDFDateRangeField(IRDFField):
         )
 
 
-class IRDFURIRefField(IRDFField):
+class IRDFURIRefField(IRDFDataPropertyField):
     """
     A field handling rdflib URIRefs
 
@@ -117,7 +127,7 @@ class IRDFURIRefField(IRDFField):
     pass
 
 
-class IRDFChoiceField(IRDFField):
+class IRDFChoiceField(IRDFDataPropertyField):
     """
     A field handling rdflib URIRefs
 
@@ -127,7 +137,7 @@ class IRDFChoiceField(IRDFField):
     pass
 
 
-class IRDFObjectField(IRDFField):
+class IRDFObjectField(IRDFObjectPropertyField):
     """
     A field handling rdflib URIRefs
 
