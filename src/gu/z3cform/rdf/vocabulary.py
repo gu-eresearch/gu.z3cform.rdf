@@ -88,6 +88,9 @@ class SparqlInstanceVocabularyFactory(object):
 
     implements(IVocabularyFactory)
 
+    def __init__(self, classuri):
+        self.classuri = classuri
+
     def __call__(self, context):
         h = getUtility(IORDF).getHandler()
         r = h.query("select distinct ?uri ?title "
@@ -99,7 +102,7 @@ class SparqlInstanceVocabularyFactory(object):
                     "  }"
                     "} "
                     "order by ?title"
-                    % context.n3())
+                    % self.classuri.n3())
         # this here would be the natural way when parsing a sparql-xml-result
         #uris = sorted([item['g'] for item in g])
 
@@ -115,9 +118,12 @@ class SparqlVocabularyFactory(object):
 
     implements(IVocabularyFactory)
 
+    def __init__(self, query):
+        self.query = query
+
     def __call__(self, context):
         h = getUtility(IORDF).getHandler()
-        r = h.query(context)
+        r = h.query(self.query)
         # this here would be the natural way when parsing a sparql-xml-result
         #uris = sorted([item['g'] for item in g])
 
