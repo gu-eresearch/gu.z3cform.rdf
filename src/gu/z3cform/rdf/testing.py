@@ -24,7 +24,11 @@ class MockHandler(object):
     def put(self, graph):
         # copy given graph into store
         # remove old data
-        self.store.remove_context(graph.identifier)
+        #self.store.remove_context(graph.identifier)
+        # TODO: something weird is going with the above when using
+        #       BNodes as graph.identifier code below works as
+        #       expected
+        self.store.remove((None, None, None, graph.identifier))
         # add new data
         for s, p, o in graph:
             self.store.add((s, p, o, graph.identifier))
