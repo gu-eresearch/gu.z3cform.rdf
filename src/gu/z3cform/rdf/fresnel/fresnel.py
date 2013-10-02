@@ -336,7 +336,7 @@ class Vocabulary(Graph):
         query = self.value(self.identifier, Z3C['query'])
         classuri = self.value(self.identifier, Z3C['valueClass'])
         if classuri is not None:
-            return SparqlInstanceVocabularyFactory()(classuri)
+            return SparqlInstanceVocabularyFactory(classuri)(None)
         else:
             # assume a query has been given
-            return SparqlVocabularyFactory()(query)
+            return SparqlVocabularyFactory(query)(None)
