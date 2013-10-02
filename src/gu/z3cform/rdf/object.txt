@@ -144,7 +144,7 @@ check the form
 
 and the data storage
 
-    >>> tuple(handler.store.objects(persuri, FOAF['givenName']))
+    >>> handler.store.value(persuri, FOAF['givenName'])
     rdflib.term.Literal(u'newname')
     >>> handler.store.value(persuri, RDF['type'])
     rdflib.term.URIRef(u'http://xmlns.com/foaf/0.1/Person')
