@@ -44,11 +44,9 @@ We also need to import our stuff
 
 Let's create a graph we use to store and load data for forms
 
-    >>> from rdflib import ConjunctiveGraph
     >>> from zope.component import getUtility
     >>> from gu.z3cform.rdf.interfaces import IORDF
     >>> handler = getUtility(IORDF).getHandler()
-    >>> handler.store = data = ConjunctiveGraph()
 
 We alse need an interface to drive the form
 

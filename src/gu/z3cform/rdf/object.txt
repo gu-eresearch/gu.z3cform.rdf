@@ -29,16 +29,14 @@ Define a few namespaces we'll need later
 
 Let's create a graph we use to store and load data for forms
 
-    >>> from rdflib import ConjunctiveGraph
     >>> from zope.component import getUtility
     >>> from gu.z3cform.rdf.interfaces import IORDF
     >>> handler = getUtility(IORDF).getHandler()
-    >>> handler.store = data = ConjunctiveGraph()
     >>> context = None
 
 We also need an AddForm and request to create new objects
 
-    >>> from gu.z3cform.rdf.tests.test_doc import ExtensibleAddForm
+    >>> from gu.z3cform.rdf.testing import ExtensibleAddForm
     >>> request = testing.TestRequest()
     >>> add_form = ExtensibleAddForm(context, request)
     >>> add_form.rdftype = FOAF['Person']
@@ -94,22 +92,22 @@ We shoud be able to fill out the form and submit it.
 
 There should be some data in our triple store now
 
-    >>> persuri = tuple(data.subjects(RDF['type'], FOAF['Person']))[0]
-    >>> data.value(persuri, FOAF['givenName'])
+    >>> persuri = tuple(handler.store.subjects(RDF['type'], FOAF['Person']))[0]
+    >>> handler.store.value(persuri, FOAF['givenName'])
     rdflib.term.Literal(u'firstname')
-    >>> data.value(persuri, RDF['type'])
+    >>> handler.store.value(persuri, RDF['type'])
     rdflib.term.URIRef(u'http://xmlns.com/foaf/0.1/Person')
-    >>> data.value(persuri, VCARD['hasAddress'])
+    >>> handler.store.value(persuri, VCARD['hasAddress'])
     rdflib.term.URIRef(u'http://example.com/...')
-    >>> addruri = data.value(persuri, VCARD['hasAddress'])
-    >>> data.value(addruri, VCARD['locality'])
+    >>> addruri = handler.store.value(persuri, VCARD['hasAddress'])
+    >>> handler.store.value(addruri, VCARD['locality'])
     rdflib.term.Literal(u'cityname')
-    >>> data.value(addruri, RDF['type'])
+    >>> handler.store.value(addruri, RDF['type'])
     rdflib.term.URIRef(u'http://www.w3.org/2006/vcard/ns#Address')
 
 Let's now try to use an EditForm to change the data
 
-    >>> from gu.z3cform.rdf.tests.test_doc import ExtensibleEditForm
+    >>> from gu.z3cform.rdf.testing import ExtensibleEditForm
     >>> context = handler.get(persuri)
     >>> request = testing.TestRequest()
     >>> edit_form = ExtensibleEditForm(context, request)
@@ -146,21 +144,21 @@ check the form
 
 and the data storage
 
-    >>> data.value(persuri, FOAF['givenName'])
+    >>> tuple(handler.store.objects(persuri, FOAF['givenName']))
     rdflib.term.Literal(u'newname')
-    >>> data.value(persuri, RDF['type'])
+    >>> handler.store.value(persuri, RDF['type'])
     rdflib.term.URIRef(u'http://xmlns.com/foaf/0.1/Person')
-    >>> data.value(persuri, VCARD['hasAddress']) == addruri
+    >>> handler.store.value(persuri, VCARD['hasAddress']) == addruri
     True
-    >>> data.value(addruri, VCARD['locality'])
+    >>> handler.store.value(addruri, VCARD['locality'])
     rdflib.term.Literal(u'cityname')
-    >>> data.value(addruri, VCARD['postalCode'])
+    >>> handler.store.value(addruri, VCARD['postalCode'])
     rdflib.term.Literal(u'1111')
 
 
 finally let's try the display form as well
 
-    >>> from gu.z3cform.rdf.tests.test_doc import ExtensibleDisplayForm
+    >>> from gu.z3cform.rdf.testing import ExtensibleDisplayForm
     >>> request = testing.TestRequest()
     >>> display_form = ExtensibleDisplayForm(context, request)
     >>> html = display_form()
