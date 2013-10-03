@@ -129,8 +129,11 @@ class RDFObjectConverter(BaseDataConverter):
         # TODO: should get fields from lens instead of subform
         for name in self.widget.subform.fields:
             try:
-                field = self.widget.subform.fields[name].field
                 data = value[name]
+                if data is None:
+                    # ignore None values
+                    continue
+                field = self.widget.subform.fields[name].field
                 if not ICollection.providedBy(field):
                     data = [data]
                 for val in data:
