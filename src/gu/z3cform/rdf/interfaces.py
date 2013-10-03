@@ -28,7 +28,15 @@ class IRDFN3Field(IRDFField):
 
 class IRDFDataPropertyField(IRDFField):
 
-    pass
+    rdftype = URIRefField(
+        title=u"Literal datatype",
+        required=False
+        )
+
+    rdflang = TextLine(
+        title=u"Literal language",
+        required=False
+        )
 
 
 class IRDFObjectPropertyField(IRDFField):
@@ -52,30 +60,11 @@ class IRDFLiteralField(IRDFDataPropertyField):
     A field handling multiline rdflib Literals
     """
 
-    rdftype = URIRefField(
-        title=u"Literal datatype",
-        required=False
-        )
-
-    rdflang = TextLine(
-        title=u"Literal language",
-        required=False
-        )
-
 
 class IRDFLiteralLineField(IRDFDataPropertyField):
     """
     A field handling rdflib Literals
     """
-    rdftype = URIRefField(
-        title=u"Literal datatype",
-        required=False
-        )
-
-    rdflang = TextLine(
-        title=u"Literal language",
-        required=False
-        )
 
 
 class IRDFDateField(IRDFDataPropertyField):
@@ -88,8 +77,8 @@ class IRDFDateField(IRDFDataPropertyField):
     TODO: check whether this is better be
     solved via a typed IRDFLiteralLineField (rdflib would support
     casting between string and actual python field value)
+    TODO: default to dcterms:W3CDTF?
 
-    Extends: IRDFField
     """
 
     rdftype = URIRefField(
@@ -145,6 +134,7 @@ class IRDFObjectField(IRDFObjectPropertyField):
           to restrict the set of elements that can be linked.
     """
 
+    # TODO: rename to range?
     classuri = URIRefField(
         title=u'Class URI',
         required=True,
