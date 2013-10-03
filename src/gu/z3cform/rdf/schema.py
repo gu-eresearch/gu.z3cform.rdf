@@ -1,7 +1,8 @@
+import re
 from zope.interface import implementer
-from zope.schema import Text, List, TextLine, Choice, Field, Date
+from zope.schema import Text, List, TextLine, Choice, Field, Orderable
 from zope.schema.fieldproperty import FieldProperty
-from zope.schema.interfaces import IObject
+from zope.schema.interfaces import IObject, IDate, WrongType
 from rdflib import Literal, URIRef, XSD
 from rdflib.util import from_n3
 from gu.z3cform.rdf.interfaces import IRDFN3Field, IRDFMultiValueField
@@ -60,10 +61,12 @@ class RDFLiteralField(Text):
 
     def fromUnicode(self, str):
         # TODO: ensure only rdftype or rdflang is given and use these values in
-        #       fromUnicode
+        #       fromUnicode or is from_n3 more appropriate?
         value = Literal(str)
         self.validate(value)
         return value
+
+    # validate type and lang?
 
 
 @implementer(IRDFLiteralLineField)
@@ -84,46 +87,47 @@ class RDFLiteralLineField(TextLine):
         self.rdflang = rdflang
 
     def fromUnicode(self, str):
+        # TODO: do from_n3 or apply lang, type to literal
         value = Literal(str)
         self.validate(value)
         return value
 
+    def _validate(self, value):
+        super(RDFLiteralLineField, self)._validate(value)
+        if value.datatype != self.rdftype:
+            raise WrongType(value, self.rdftype, self.__name__)
+        # validate type and lang?
+        # TODO: validate 00 values?
 
-@implementer(IRDFDateField)
-class RDFDateField(Date):
 
-    prop = FieldProperty(IRDFField['prop'])
-    rdftype = FieldProperty(IRDFDateField['rdftype'])
+is_w3cdate = re.compile(r'^\d\d\d\d(-\d\d){0,2}$').match
 
-    def __init__(self, prop, **kw):
-        super(RDFDateField, self).__init__(**kw)
-        # TODO: ensure only rdftype or rdflang is given and use these values in
-        #       fromUnicode
-        self.prop = prop
-        self.rdftype = XSD['date']
+
+# TODO: support dcterms:W3CDTF and dcterms:Period? Date? free form data
+@implementer(IRDFDateField, IDate)
+class RDFDateField(Orderable, RDFLiteralLineField):
+    """
+    Stores dates in dcterms:W3CDTF format.
+    YYYY
+    YYYY-MM
+    YYYY-MM-DD
+    """
+
+    def __init__(self, prop, rdftype=DC['W3CDTF'], **kw):
+        super(RDFDateField, self).__init__(prop=prop, rdftype=rdftype, **kw)
+        # TODO: ensure rdftype is given and rdflang is none
 
     def fromUnicode(self, str):
         value = Literal(str, datatype=self.rdftype)
         self.validate(value)
         return value
 
-    def validate(self, value):
-        # TODO: fix this validation. is it really necessary to convert again to a python object?
-        if value is not None:
-            value = value.toPython()
-        return super(RDFDateField, self).validate(value)
-
-    def get(self, object):
-        import ipdb; ipdb.set_trace()
-        return super(RDFDateField, self).get(object)
-
-    def query(self, object, default=None):
-        import ipdb; ipdb.set_trace()
-        return super(RDFDateField, self).query(object, default)
-
-    def set(self, object, value):
-        import ipdb; ipdb.set_trace()
-        super(RDFDateField, self).set(object, value)
+    def _validate(self, value):
+        super(RDFDateField, self)._validate(value)
+        if value is not None and not is_w3cdate(value):
+            raise ValueError(value, "not a valid W3CDTF date", self.__name__)
+        # TODO: use this r'^(\d\d\d\d)(-(\d\d))?(-(\d\d))?$'
+        #       and validate number ranges of match.groups(0,2,3)
 
 
 @implementer(IRDFDateRangeField)
