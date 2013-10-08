@@ -33,6 +33,19 @@ def getLens(individual):
     return None
 
 
+def _toFormFields(fields):
+    """
+    convert schema fields to form fields and apply widgetFactory
+    """
+    fields = field.Fields(*fields)
+    for name in fields:
+        if hasattr(fields[name].field, 'widgetFactory'):
+            LOG.info("apply widgetFactory %s to %s", fields[name].field.widgetFactory, name)
+            for key, item in fields[name].field.widgetFactory.items():
+                fields[name].widgetFactory[key] = item
+    return fields
+
+
 def getFieldsFromFresnelLens(lens, graph, resource):
     """
 
@@ -47,9 +60,8 @@ def getFieldsFromFresnelLens(lens, graph, resource):
             if isinstance(sublens, PropertyGroup):
                 _, subfields = getFieldsFromFresnelLens(sublens, graph,
                                                         resource)
-
                 g = GroupFactory(str(sublens.identifier).translate(ID_CHAR_MAP),
-                                 field.Fields(*subfields),
+                                 subfields,
                                  sublens.label(sublens.identifier), None)
                 groups.append(g)
 
@@ -90,4 +102,4 @@ def getFieldsFromFresnelLens(lens, graph, resource):
                 fieldinst = format.getField(prop)
                 if fieldinst is not None:
                     fields.append(fieldinst)
-    return tuple(groups), fields
+    return tuple(groups), _toFormFields(fields)

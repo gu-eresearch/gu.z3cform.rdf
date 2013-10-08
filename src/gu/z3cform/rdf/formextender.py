@@ -51,14 +51,12 @@ class RDFFormExtender(FormExtender):
                                                       individual.identifier)
 
         # transfer fresnel fields to form:
-        for field in fields:
-            LOG.info("adding main field %s", field.__name__)
-            self.add(field)
+        LOG.info("adding main fields %s", fields.keys())
+        self.add(fields)
         for group in groups:
             LOG.info("process group: %s", group.label)
-            for field in group.fields.values():
-                LOG.info("adding group field %s", field.__name__)
-                self.add(field, group=group.label)
+            LOG.info("adding group fields %s", group.fields.keys())
+            self.add(group.fields, group=group.label)
 
         # processFields(self.form, iface)
         # processFieldMoves(self.form, iface)

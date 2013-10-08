@@ -133,7 +133,6 @@ class RDFObjectConverter(BaseDataConverter):
         # Have to get the fields for lens, as multi widget does not do a widget update
         # before calling toFieldValue
         _, fields = getFieldsFromFresnelLens(self.widget.field.lens, obj, obj.identifier)
-        fields = Fields(*fields)
 
         for name in fields:
             try:
@@ -168,9 +167,8 @@ class RDFObjectSubForm(ObjectSubForm):
         context = self.getContent()
         lens = self.__parent__.field.lens
         if lens is not None:
-            _, fields = getFieldsFromFresnelLens(lens, context,
+            _, self.fields = getFieldsFromFresnelLens(lens, context,
                                                  context.identifier)
-            self.fields = Fields(*fields)
         else:
             self.fields = Fields()
 
