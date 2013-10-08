@@ -114,7 +114,6 @@ class Fresnel(Graph):
         for name, utility in sm.getUtilitiesFor(IVocabularyFactory):
             if IFresnelVocabularyFactory.providedBy(utility):
                 # unregister all existing utilities
-                import ipdb; ipdb.set_trace()
                 sm.unregisterUtility(component=utility, provided=IVocabularyFactory, name=name)
         for name, vocab in self.vocabularies.items():
             utility = vocab()
