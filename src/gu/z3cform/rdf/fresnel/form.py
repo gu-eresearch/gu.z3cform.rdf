@@ -4,7 +4,7 @@ from gu.z3cform.rdf.interfaces import IIndividual
 from gu.z3cform.rdf.interfaces import IORDF
 from gu.z3cform.rdf.namespace import Z3C
 from ordf.namespace import FRESNEL
-from rdflib import Literal
+from rdflib import Literal, XSD
 from z3c.form import field
 from zope.component import getUtility
 from zope.dottedname.resolve import resolve
@@ -71,8 +71,8 @@ def getFieldsFromFresnelLens(lens, graph, resource):
 
                 #multi = format.value(format.identifier, Z3C['multi'], default=Literal("false", datatype=XSD.boolean))
                 # FIXME: there is a problem with current rdflib zodb and typed literals
-                multi = format.value(format.identifier, Z3C['multi'], default=Literal("false"))
-                if multi in ('true', '1', 'True'):
+                multi = format.value(format.identifier, Z3C['multi'], default=Literal("false", datatype=XSD['boolean']))
+                if multi.toPython() in ('true', '1', 'True', True):
                     # multivalued object field requested
                     fieldkw['value_type'] = fieldinst
                     del fieldkw['classuri']
