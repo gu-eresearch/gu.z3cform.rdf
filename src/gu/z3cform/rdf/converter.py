@@ -89,6 +89,10 @@ class RDFObjectConverter(BaseDataConverter):
     def toFieldValue(self, value):
         """field value is an Object type, that provides field.schema"""
         # we should always get a dict as value here
+        if isinstance(value, Graph):
+            # this happens in case we have a multi object widget. when setting a new value to MultiWidget and MultiWidget applying all values to sub forms
+            # TODO: just pass through for now
+            return value
         if value is NO_VALUE:
             return self.field.missing_value
 
@@ -126,14 +130,18 @@ class RDFObjectConverter(BaseDataConverter):
         rdftype = lens.value(lens.identifier, FRESNEL['classLensDomain'])
         obj.add((obj.identifier, RDF['type'], rdftype))
 
-        # TODO: should get fields from lens instead of subform
-        for name in self.widget.subform.fields:
+        # Have to get the fields for lens, as multi widget does not do a widget update
+        # before calling toFieldValue
+        _, fields = getFieldsFromFresnelLens(self.widget.field.lens, obj, obj.identifier)
+        fields = Fields(*fields)
+
+        for name in fields:
             try:
                 data = value[name]
                 if data is None:
                     # ignore None values
                     continue
-                field = self.widget.subform.fields[name].field
+                field = fields[name].field
                 if not ICollection.providedBy(field):
                     data = [data]
                 for val in data:
