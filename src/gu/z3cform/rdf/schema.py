@@ -13,6 +13,7 @@ from gu.z3cform.rdf.interfaces import IRDFDateRangeField, IRDFField
 from gu.z3cform.rdf.vocabulary import SparqlTreeVocabularyFactory
 from ordf.namespace import DC
 from gu.z3cform.rdf._bootstrap import URIRefField
+from gu.z3cform.rdf.utils import Period
 
 # TODO: for specialised fields like URIRef, or Literal field:
 #       in case there is data in the graph, that does not match the type
@@ -131,27 +132,37 @@ class RDFDateField(Orderable, RDFLiteralLineField):
 
 
 @implementer(IRDFDateRangeField)
-class RDFDateRangeField(RDFN3Field):
+class RDFDateRangeField(RDFLiteralLineField):
+    """
+    Stores date ranges/ time intervals in dcterms:Period format
 
-    prop = FieldProperty(IRDFField['prop'])
+    start: W3CDTF end: W3CDTF scheme:W3C-DTF name:Name of Period
+    """
+
     rdftype = FieldProperty(IRDFDateRangeField['rdftype'])
 
-    def __init__(self, prop, **kw):
-        super(RDFDateRangeField, self).__init__(prop=prop, **kw)
+    def __init__(self, prop, rdftype=DC['Period'], **kw):
+        super(RDFDateRangeField, self).__init__(prop=prop, rdftype=rdftype, **kw)
         # TODO: ensure only rdftype or rdflang is given and use these values in
         #       fromUnicode
-        self.rdftype = DC['Period']
 
     def fromUnicode(self, str):
         value = Literal(str, datatype=self.rdftype)
         self.validate(value)
         return value
 
-    def validate(self, value):
-        # TODO: fix this validation. is it really necessary to convert again to a python object?
-        #if value is not None:
-        #    value = value.toPython()
-        return super(RDFDateRangeField, self).validate(value)
+    def _validate(self, value):
+        super(RDFDateRangeField, self)._validate(value)
+        p = Period(value)
+        # Default scheme is W3C-DTF
+        if p.scheme is None or p.scheme == 'W3C-DTF':
+            if value is not None and (p.start is None and p.end is None):
+                raise ValueError(value, "not a valid W3CDTF start or end date", self.__name__)
+            if p.start is not None and not is_w3cdate(p.start):
+                raise ValueError(value, "not a valid W3CDTF start date", self.__name__)
+            if p.end is not None and not is_w3cdate(p.end):
+                raise ValueError(value, "not a valid W3CDTF end date", self.__name__)
+        # TODO: other validations possible?
 
 
 @implementer(IRDFURIRefField)
