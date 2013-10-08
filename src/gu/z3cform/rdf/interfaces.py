@@ -84,7 +84,7 @@ class IRDFDateField(IRDFDataPropertyField):
     rdftype = URIRefField(
         title=u"Literal datatype",
         required=False,
-        default=XSD['date']
+        default=DC['W3CDTF']
         )
 
 
