@@ -203,3 +203,9 @@ class IRDFTypeMapper(Interface):
         """
         update rdf:type information in graph
         """
+
+
+class IFresnelVocabularyFactory(Interface):
+    """
+    Marker interface for vocabulary factories registered via Fresnel.
+    """

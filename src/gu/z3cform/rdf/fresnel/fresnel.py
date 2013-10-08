@@ -9,6 +9,10 @@ from gu.z3cform.rdf.vocabulary import SparqlInstanceVocabularyFactory
 from gu.z3cform.rdf.vocabulary import SparqlVocabularyFactory
 from gu.z3cform.rdf.namespace import Z3C
 from z3c.form.interfaces import DISPLAY_MODE, HIDDEN_MODE, INPUT_MODE
+from zope.component import getSiteManager
+from zope.interface import alsoProvides
+from gu.z3cform.rdf.interfaces import IFresnelVocabularyFactory
+from zope.schema.interfaces import IVocabularyFactory
 
 # TODO: this is used toconvert URLs to valid html-id's. maybe use proper
 #        url namespace prefix and replace only tho colon with _
@@ -103,6 +107,19 @@ class Fresnel(Graph):
                 group = self.getGroup(grp)
                 group.lenses[l] = lens
                 lens.addGroup(group)
+
+        # TODO: these are Zope2 vocabulary registrations.
+        # register components
+        sm = getSiteManager()  # TODO: should I go for global site manager here?
+        for name, utility in sm.getUtilitiesFor(IVocabularyFactory):
+            if IFresnelVocabularyFactory.providedBy(utility):
+                # unregister all existing utilities
+                import ipdb; ipdb.set_trace()
+                sm.unregisterUtility(component=utility, provided=IVocabularyFactory, name=name)
+        for name, vocab in self.vocabularies.items():
+            utility = vocab()
+            alsoProvides(utility, IFresnelVocabularyFactory)
+            sm.registerUtility(component=utility, provided=IVocabularyFactory, name=unicode(name))
 
 
 class Group(Graph):
@@ -292,8 +309,7 @@ class Field(Graph):
             del subfieldkw['title']
             if vocabulary is not None:
                 # a query based vocabulary?
-                subfieldkw['vocabulary'] = \
-                    self.fresnel.vocabularies[vocabulary]()
+                subfieldkw['vocabulary'] = unicode(vocabulary)  # self.fresnel.vocabularies[vocabulary]()
             # None of the above ... e.g. simple text field?
             fieldkw['value_type'] = valueType(prop=prop,
                                               **subfieldkw)
@@ -302,7 +318,7 @@ class Field(Graph):
             vocabulary = self.value(self.identifier, Z3C['vocabulary'])
             if vocabulary is not None:
                 # a query based vocabulary?
-                fieldkw['vocabulary'] = self.fresnel.vocabularies[vocabulary]()
+                fieldkw['vocabulary'] = unicode(vocabulary)  # self.fresnel.vocabularies[vocabulary]()
         fieldkw['description'] = self.value(self.identifier, Z3C['fieldDescription'])
         field = fieldClass(prop=prop, **fieldkw)
 
@@ -336,7 +352,7 @@ class Vocabulary(Graph):
         query = self.value(self.identifier, Z3C['query'])
         classuri = self.value(self.identifier, Z3C['valueClass'])
         if classuri is not None:
-            return SparqlInstanceVocabularyFactory(classuri)(None)
+            return SparqlInstanceVocabularyFactory(classuri)
         else:
             # assume a query has been given
-            return SparqlVocabularyFactory(query)(None)
+            return SparqlVocabularyFactory(query)
