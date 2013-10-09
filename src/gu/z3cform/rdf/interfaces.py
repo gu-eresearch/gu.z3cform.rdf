@@ -1,5 +1,6 @@
 from zope.interface import Interface
 from zope.schema import List, Object, TextLine
+from zope.schema.interfaces import IObject
 from gu.z3cform.rdf._bootstrap import URIRefField
 from rdflib import XSD
 from ordf.namespace import DC
@@ -126,7 +127,7 @@ class IRDFChoiceField(IRDFDataPropertyField):
     pass
 
 
-class IRDFObjectField(IRDFObjectPropertyField):
+class IRDFObjectField(IRDFObjectPropertyField, IObject):
     """
     A field handling rdflib URIRefs
 

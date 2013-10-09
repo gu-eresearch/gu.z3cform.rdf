@@ -200,13 +200,21 @@ class RDFObjectSubForm(ObjectSubForm):
         self.fields += idfields
 
     def getContent(self):
-        val = self.__parent__._value
+        # if the widget set a context for use, try to use it
+        #    otherwise use the widget value
+        if not self.ignoreContext and self.context:
+            val = self.context
+        else:
+            val = self.__parent__._value
         if val == NO_VALUE:
             return Graph()
         if not isinstance(val, _Graph):
             # usually a dict with extracted widget_value
             # TODO: convert to fieldvalue here? Might make the toFieldValue to dict work again
-            return Graph()
+            identifier = val.get('identifier')
+            if identifier:
+                identifier = URIRef(identifier)
+            return Graph(identifier=identifier)
         return val
 
 

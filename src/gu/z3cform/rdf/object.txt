@@ -67,7 +67,8 @@ So far all the fields are there. Let us check the object field as well
      ('http___www_w3_org_2006_vcard_ns_postalCode',
       <Field 'http___www_w3_org_2006_vcard_ns_postalCode'>),
      ('http___www_w3_org_2006_vcard_ns_country',
-      <Field 'http___www_w3_org_2006_vcard_ns_country'>)]
+      <Field 'http___www_w3_org_2006_vcard_ns_country'>),
+     ('identifier', <Field 'identifier'>)]
     >>> pprint(objwidget.subform.widgets.items())
     [('http___www_w3_org_2006_vcard_ns_streetAddress',
       <TextWidget 'form.widgets.http___www_w3_org_2006_vcard_ns_hasAddress.widgets.http___www_w3_org_2006_vcard_ns_streetAddress'>),
@@ -76,7 +77,9 @@ So far all the fields are there. Let us check the object field as well
      ('http___www_w3_org_2006_vcard_ns_postalCode',
       <TextWidget 'form.widgets.http___www_w3_org_2006_vcard_ns_hasAddress.widgets.http___www_w3_org_2006_vcard_ns_postalCode'>),
      ('http___www_w3_org_2006_vcard_ns_country',
-      <TextWidget 'form.widgets.http___www_w3_org_2006_vcard_ns_hasAddress.widgets.http___www_w3_org_2006_vcard_ns_country'>)]
+      <TextWidget 'form.widgets.http___www_w3_org_2006_vcard_ns_hasAddress.widgets.http___www_w3_org_2006_vcard_ns_country'>),
+     ('identifier',
+      <TextWidget 'form.widgets.http___www_w3_org_2006_vcard_ns_hasAddress.widgets.identifier'>)]
 
 We shoud be able to fill out the form and submit it.
 
@@ -100,6 +103,8 @@ There should be some data in our triple store now
     >>> handler.store.value(persuri, VCARD['hasAddress'])
     rdflib.term.URIRef(u'http://example.com/...')
     >>> addruri = handler.store.value(persuri, VCARD['hasAddress'])
+    >>> addruri
+    rdflib.term.URIRef(u'...')
     >>> handler.store.value(addruri, VCARD['locality'])
     rdflib.term.Literal(u'cityname')
     >>> handler.store.value(addruri, RDF['type'])
@@ -118,7 +123,7 @@ Let's now try to use an EditForm to change the data
      {'...}]
     >>> objwidget = add_form.widgets['http___www_w3_org_2006_vcard_ns_hasAddress']
     >>> pprint([f.value for f in objwidget.subform.widgets.values()])
-    [u'', u'cityname', u'', u'']
+    [u'', u'cityname', u'', u'', u'']
 
 Let's do some editing
 
@@ -126,6 +131,7 @@ Let's do some editing
     ... 'form.widgets.http___xmlns_com_foaf_0_1_givenName': u'newname',
     ... 'form.widgets.http___www_w3_org_2006_vcard_ns_hasAddress.widgets.http___www_w3_org_2006_vcard_ns_locality': u'cityname',
     ... 'form.widgets.http___www_w3_org_2006_vcard_ns_hasAddress.widgets.http___www_w3_org_2006_vcard_ns_postalCode': u'1111',
+    ... 'form.widgets.http___www_w3_org_2006_vcard_ns_hasAddress.widgets.identifier': addruri,
     ... 'form.widgets.http___www_w3_org_2006_vcard_ns_hasAddress-empty-marker': u'',
     ... 'form.buttons.apply': u'Apply'}
     ... )
@@ -140,7 +146,11 @@ check the form
      {'...}]
     >>> objwidget = edit_form.widgets['http___www_w3_org_2006_vcard_ns_hasAddress']
     >>> pprint([f.value for f in objwidget.subform.widgets.values()])
-    [u'', u'cityname', u'1111', u'']
+    [u'',
+     u'cityname',
+     u'1111',
+     u'',
+     rdflib.term.URIRef(u'...')]
 
 and the data storage
 

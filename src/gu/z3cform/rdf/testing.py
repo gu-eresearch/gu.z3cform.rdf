@@ -49,6 +49,11 @@ class MockHandler(object):
         self._cache[identifier] = cgraph
         return cgraph
 
+    def remove(self, identifier):
+        self.store.remove((None, None, None, identifier))
+        if identifier in self._cache:
+            del self._cache[identifier]
+
     def query(self, query):
         return self.store.query(query)
 

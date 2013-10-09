@@ -102,9 +102,6 @@ class GraphDataManager(DataManager):
         #    If I keep track of graphs and remove one, I'll have to make sure I remove
         #       all other props pointing to it as well
 
-        if 'RelatedGriffithPerson' in unicode(self.prop ):
-            import ipdb; ipdb.set_trace()
-
         handler = getUtility(IORDF).getHandler()
         olddata = list(self.graph.objects(self.subj, self.prop))
         self.graph.remove((self.subj, self.prop, None))
