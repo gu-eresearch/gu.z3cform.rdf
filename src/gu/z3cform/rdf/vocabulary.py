@@ -1,3 +1,4 @@
+from string import Template
 from zope.schema.interfaces import IVocabularyFactory, ITitledTokenizedTerm
 from zope.interface import implements
 from zope.component import getUtility
@@ -122,7 +123,7 @@ class SparqlVocabularyFactory(object):
     implements(IVocabularyFactory)
 
     def __init__(self, query):
-        self.query = query
+        self.query = Template(query)
 
     def __call__(self, context):
         h = getUtility(IORDF).getHandler()
@@ -130,7 +131,7 @@ class SparqlVocabularyFactory(object):
         g = IGraph(context, None)
         if g is not None:
             params['contexturi'] = g.identifier.n3()
-        r = h.query(self.query.format(**params))
+        r = h.query(self.query.safe_substitute(params))
         # this here would be the natural way when parsing a sparql-xml-result
         #uris = sorted([item['g'] for item in g])
 
