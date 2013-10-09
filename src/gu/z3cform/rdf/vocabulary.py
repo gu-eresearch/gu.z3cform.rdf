@@ -1,7 +1,7 @@
 from zope.schema.interfaces import IVocabularyFactory, ITitledTokenizedTerm
 from zope.interface import implements
 from zope.component import getUtility
-from gu.z3cform.rdf.interfaces import IORDF
+from gu.z3cform.rdf.interfaces import IORDF, IGraph
 from zope.schema.vocabulary import SimpleVocabulary, TreeVocabulary, SimpleTerm
 from z3c.formwidget.query.interfaces import IQuerySource
 from rdflib.namespace import split_uri
@@ -55,6 +55,9 @@ class SparqlTreeVocabularyFactory(object):
 
     implements(IVocabularyFactory)
 
+    def __init__(self, classuri):
+        self.classuri = classuri
+
     def __call__(self, context):
         h = getUtility(IORDF).getHandler()
         r = h.query("select distinct ?uri ?title "
@@ -66,7 +69,7 @@ class SparqlTreeVocabularyFactory(object):
                     "  }"
                     "} "
                     "order by ?title"
-                    % context.n3())
+                    % self.classuri.n3())
         # this here would be the natural way when parsing a sparql-xml-result
         #uris = sorted([item['g'] for item in g])
 
@@ -123,7 +126,11 @@ class SparqlVocabularyFactory(object):
 
     def __call__(self, context):
         h = getUtility(IORDF).getHandler()
-        r = h.query(self.query)
+        params = {}
+        g = IGraph(context, None)
+        if g is not None:
+            params['contexturi'] = g.identifier.n3()
+        r = h.query(self.query.format(**params))
         # this here would be the natural way when parsing a sparql-xml-result
         #uris = sorted([item['g'] for item in g])
 
