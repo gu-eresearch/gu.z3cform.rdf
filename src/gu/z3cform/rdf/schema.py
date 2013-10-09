@@ -212,7 +212,7 @@ class RDFGroupedURIChoiceField(Choice):
     prop = FieldProperty(IRDFField['prop'])
 
     def __init__(self, prop, classuri, **kw):
-        kw['vocabulary'] = SparqlTreeVocabularyFactory()(classuri)
+        kw['vocabulary'] = SparqlTreeVocabularyFactory(classuri)()
         super(RDFGroupedURIChoiceField, self).__init__(**kw)
         self.prop = prop
 
