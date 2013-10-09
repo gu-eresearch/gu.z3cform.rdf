@@ -13,7 +13,7 @@ from zope.interface import implementer
 from zope.component import adapter
 from z3c.form.field import Fields
 from ordf.namespace import FRESNEL
-from rdflib import RDF
+from rdflib import RDF, URIRef
 from zope.schema.interfaces import ICollection
 
 
@@ -62,27 +62,43 @@ class RDFObjectConverter(BaseDataConverter):
             return NO_VALUE  # TODO: empty graph here?
         return value
 
-        # TODO: The code below does not work properly.
+
+        # TODO: The widget does'nt work with dictionaries.
         # It probably needs a datamanager for rdffields, that can work
         # on dictionaries
 
-        # could look into lens to get fields (self.field.lens)
-        # get FieldsFromLens ... plus self.field.schema?
+        lens = self.widget.field.lens
+        # TODO: what about groups in object subforms?
+        _, fields = getFieldsFromFresnelLens(lens, value, value.identifier)
 
-        # retval = {}
-        # groups, fields = getFieldsFromFresnelLens(self.field.lens, value,
-        #                                           value.identifier)
-        # for field in fields:
-        #     dm = getMultiAdapter(
-        #         (value, field), IDataManager)
-        #     retval[field.__name__] = dm.query()
-        # return retval
+        widget_value = {}
+        for name in fields:
+            field = fields[name].field
+            data = list(value.objects(value.identifier, field.prop))
+            if not data:
+                widget_value[name] = None
+            elif not ICollection.providedBy(field):
+                widget_value[name] = data[0]
+            else:
+                widget_value[name] = data
+        if isinstance(value.identifier, URIRef):
+            widget_value['identifier'] = value.identifier
+        return widget_value
+
+
 
     def createObject(self, value):
-        # This is being used by toFieldValue. We ignore the value
-        # here and let toFieldValue apply whatever necessary
-        ordftool = getUtility(IORDF)
-        identifier = ordftool.generateURI()
+        # This is being used by toFieldValue.
+        # We genarete a new graph with an identifier and let toFieldValue
+        # apply the rest
+
+        # use identifier from value or generate new identifier
+        # TODO: maybe do BNode here and let dm take care of generating URI?
+        identifier = value.get('identifier')
+        if not identifier:
+            identifier = getUtility(IORDF).generateURI()
+        else:
+            identifier = URIRef(identifier)
         obj = Graph(identifier=identifier)
         return obj
 
@@ -103,8 +119,10 @@ class RDFObjectConverter(BaseDataConverter):
             if self.widget.subform.ignoreContext:
                 obj = self.createObject(value)
             else:
+                # This usually fails for multi objecwidget, as we don't really know
+                # which one of of multiple subgraphs to load
                 dm = getMultiAdapter(
-                    (self.widget.context, self.field), IDataManager)
+                    (self.widget.subform.context, self.field), IDataManager)
                 try:
                     # we should get the sub object from the same graph
                     data = dm.get()
@@ -132,7 +150,7 @@ class RDFObjectConverter(BaseDataConverter):
 
         # Have to get the fields for lens, as multi widget does not do a widget update
         # before calling toFieldValue
-        _, fields = getFieldsFromFresnelLens(self.widget.field.lens, obj, obj.identifier)
+        _, fields = getFieldsFromFresnelLens(lens, obj, obj.identifier)
 
         for name in fields:
             try:
@@ -170,13 +188,24 @@ class RDFObjectSubForm(ObjectSubForm):
             _, self.fields = getFieldsFromFresnelLens(lens, context,
                                                  context.identifier)
         else:
+            # TODO: raise error here?, without lens we can't do much
             self.fields = Fields()
+
+        from zope.schema import TextLine
+        from z3c.form.interfaces import HIDDEN_MODE
+        idfields = Fields(TextLine(__name__='identifier',
+                                   readonly=True,
+                                   required=False))
+        idfields['identifier'].mode = HIDDEN_MODE
+        self.fields += idfields
 
     def getContent(self):
         val = self.__parent__._value
         if val == NO_VALUE:
             return Graph()
         if not isinstance(val, _Graph):
+            # usually a dict with extracted widget_value
+            # TODO: convert to fieldvalue here? Might make the toFieldValue to dict work again
             return Graph()
         return val
 

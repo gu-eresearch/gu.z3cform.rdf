@@ -69,7 +69,7 @@ class RDFObjectWidget(ObjectWidget):
                 return self.extract()
             except MultipleErrors:
                 # FIXME: ... we are dealing with a graph
-                LOG.error("Need to extract dat afrom widgets here")
+                LOG.error("Need to extract data from widgets here")
                 return value
                 # value = {}
                 # for name in self.subform.fields:

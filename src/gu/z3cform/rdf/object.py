@@ -22,6 +22,7 @@ class SubformAdapter(object):
 
     def __init__(self, context, request, widgetContext, form,
                  widget, field, schema):
+        # context is usually None or the widget value (a dict)
         self.context = context  # context for this form
         self.request = request  # request
         self.widgetContext = widgetContext  # main context
@@ -31,5 +32,7 @@ class SubformAdapter(object):
         self.schema = schema  # we don't use this
 
     def __call__(self):
+        # TODO: should I use self.form.context and self.field to get subform context?
+        #       prob. wouldn't work for multivalued fields
         obj = self.factory(self.context, self.request, self.widget)
         return obj

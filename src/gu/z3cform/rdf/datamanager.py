@@ -95,8 +95,18 @@ class GraphDataManager(DataManager):
     def set(self, value):
         """Set the value"""
         # TODO: do we have to remove the referenced graphs as well?
-        # (in case of IRDFObjectPropertyField)
+        #       (in case of IRDFObjectPropertyField)
+        #    what about: This seems to be only a problem with multi object widgets.
+        #       if there is one prop pointing to a sub object I am adding / removing here?
+        #       which prop do I have to update if I remove all?
+        #    If I keep track of graphs and remove one, I'll have to make sure I remove
+        #       all other props pointing to it as well
+
+        if 'RelatedGriffithPerson' in unicode(self.prop ):
+            import ipdb; ipdb.set_trace()
+
         handler = getUtility(IORDF).getHandler()
+        olddata = list(self.graph.objects(self.subj, self.prop))
         self.graph.remove((self.subj, self.prop, None))
         if value is None:
             return
@@ -112,13 +122,22 @@ class GraphDataManager(DataManager):
                     # TODO: check why this is not managed by
                     # ContextGraphDataManagerForObjectFields
                     handler.put(val)
+                    # remove current graphs from olddata
+                    if val.identifier in olddata:
+                        olddata.remove(val.identifier)
                 else:
                     self.graph.add((self.subj, self.prop, val))
-        # TODO: this assumes, that we are really going to put data
-        #       into the store how about add forms? this will already
-        #       happen during object creation and not when actually
-        #       calling add() on addforms
+        # clean up orphaned graphs in case we dealt with a multivalue object widget
+        for identifier in olddata:
+            # FIXME: here are multiple use cases (1 is supported)
+            #   1. current graph has multiple properties that refer to removed graph
+            #   2. there are other graphs in the store that might refer to the removed graph
+            #   3. I assume there are more
+            self.graph.remove((self.subj, None, identifier))
+            handler.remove(identifier)
+        # persist current graph
         handler.put(self.graph)
+
 
     def canAccess(self):
         """Can the value be accessed."""
