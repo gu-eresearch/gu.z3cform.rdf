@@ -10,10 +10,12 @@ def guessRDFFileFormat(format, contentType, filename):
 
     TODO: take contentType into account
     """
-    if format.lower() not in ('n3', 'xml'):
+    if format.lower() not in ('n3', 'turtle', 'xml'):
         ext = os.path.splitext(filename)[1].lower()
         if ext in ('.n3',):
             return u"n3"
+        if ext in ('.ttl'):
+            return u"turtle"
         elif ext in ('.rdf', '.owl'):
             return u"xml"
         return None
