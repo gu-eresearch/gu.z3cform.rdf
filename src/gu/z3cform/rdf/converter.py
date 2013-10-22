@@ -14,7 +14,7 @@ from zope.component import adapter
 from z3c.form.field import Fields
 from ordf.namespace import FRESNEL
 from rdflib import RDF, URIRef
-from zope.schema.interfaces import ICollection
+from zope.schema.interfaces import ICollection, IObject
 
 
 @adapter(IRDFN3Field, IWidget)
@@ -153,20 +153,19 @@ class RDFObjectConverter(BaseDataConverter):
         _, fields = getFieldsFromFresnelLens(lens, obj, obj.identifier)
 
         for name in fields:
+            # We have to use IDatamanager here, as there may be an ObjectField again
+            # TODO: check if we would persist stuff that we shouldn't as the
+            #       rdf datamanager puts new graphs into the persist queue
             try:
-                data = value[name]
-                if data is None:
-                    # ignore None values
-                    continue
-                field = fields[name].field
-                if not ICollection.providedBy(field):
-                    data = [data]
-                for val in data:
-                    obj.remove((obj.identifier, field.prop, None))
-                    if val is not None:
-                        obj.add((obj.identifier, field.prop, val))
+                dm = getMultiAdapter((obj, fields[name].field), IDataManager)
+                oldval = dm.query()
+                if (oldval != value[name]
+                    or IObject.providedBy(fields[name].field)):
+                    dm.set(value[name])
+                    # names.append(name)
             except KeyError:
                 pass
+
         # TODO: where am I going to do the ObjectModified event with subforms?
 
         # Commonly the widget context is security proxied. This method,
