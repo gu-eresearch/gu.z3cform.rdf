@@ -2,7 +2,7 @@ from zope.component import getUtility, getMultiAdapter
 from z3c.form.interfaces import IWidget, NO_VALUE, IDataManager
 from z3c.form.converter import BaseDataConverter
 from rdflib.util import from_n3
-from ordf.graph import Graph, _Graph
+from ordf.graph import Graph, _Graph, ConjunctiveGraph
 from gu.z3cform.rdf.interfaces import (IRDFN3Field, IRDFObjectField,
                                        IRDFTypeMapper)
 from gu.z3cform.rdf.widgets.interfaces import IRDFObjectWidget
@@ -99,13 +99,13 @@ class RDFObjectConverter(BaseDataConverter):
             identifier = getUtility(IORDF).generateURI()
         else:
             identifier = URIRef(identifier)
-        obj = Graph(identifier=identifier)
+        obj = ConjunctiveGraph(identifier=identifier)
         return obj
 
     def toFieldValue(self, value):
         """field value is an Object type, that provides field.schema"""
         # we should always get a dict as value here
-        if isinstance(value, Graph):
+        if isinstance(value, _Graph):
             # this happens in case we have a multi object widget. when setting a new value to MultiWidget and MultiWidget applying all values to sub forms
             # TODO: just pass through for now
             return value
@@ -128,7 +128,7 @@ class RDFObjectConverter(BaseDataConverter):
                     data = dm.get()
                     # have to make a copy here, so that form apply can
                     # compare to the originally retrieved graph
-                    obj = Graph(identifier=data.identifier)
+                    obj = ConjunctiveGraph(identifier=data.identifier)
                     # TODO: make it quad aware
                     for t in data:
                         obj.add(t)
@@ -157,12 +157,27 @@ class RDFObjectConverter(BaseDataConverter):
             # TODO: check if we would persist stuff that we shouldn't as the
             #       rdf datamanager puts new graphs into the persist queue
             try:
-                dm = getMultiAdapter((obj, fields[name].field), IDataManager)
-                oldval = dm.query()
-                if (oldval != value[name]
-                    or IObject.providedBy(fields[name].field)):
-                    dm.set(value[name])
-                    # names.append(name)
+                data = value[name]
+                if data is None:
+                    # ignore None values
+                    continue
+                field = fields[name].field
+                if not ICollection.providedBy(field):
+                    data = [data]
+                for val in data:
+                    obj.remove((obj.identifier, field.prop, None))
+                    if val is not None:
+                        if isinstance(val, _Graph):
+                            obj.add((obj.identifier, field.prop, val.identifier))
+                            obj.addN(val.quads())
+                        else:
+                            obj.add((obj.identifier, field.prop, val))
+                # dm = getMultiAdapter((obj, fields[name].field), IDataManager)
+                # oldval = dm.query()
+                # if (oldval != value[name]
+                #     or IObject.providedBy(fields[name].field)):
+                #     dm.set(value[name])
+                #     # names.append(name)
             except KeyError:
                 pass
 
@@ -173,6 +188,10 @@ class RDFObjectConverter(BaseDataConverter):
         # security proxy now that all fields have been set using the security
         # mechanism.
         # return removeSecurityProxy(obj)
+
+        if len(obj) == 1:
+            # we have only rdf:type in it?
+            return self.field.missing_value
 
         return obj
 

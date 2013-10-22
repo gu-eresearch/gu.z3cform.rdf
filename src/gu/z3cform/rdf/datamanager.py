@@ -1,4 +1,4 @@
-from rdflib import Graph, URIRef
+from rdflib import Graph, URIRef, ConjunctiveGraph
 from zope.schema.interfaces import ICollection
 from zope.component import adapts, getUtility
 from z3c.form.interfaces import NO_VALUE
@@ -118,7 +118,11 @@ class GraphDataManager(DataManager):
                     self.graph.add((self.subj, self.prop, val.identifier))
                     # TODO: check why this is not managed by
                     # ContextGraphDataManagerForObjectFields
-                    handler.put(val)
+                    if isinstance(val, ConjunctiveGraph):
+                        for g in val.contexts():
+                            handler.put(g)
+                    else:
+                        handler.put(val)
                     # remove current graphs from olddata
                     if val.identifier in olddata:
                         olddata.remove(val.identifier)
