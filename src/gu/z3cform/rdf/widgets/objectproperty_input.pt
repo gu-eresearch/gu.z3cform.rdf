@@ -1,0 +1,24 @@
+<div class="objectproperty-widget"
+     tal:attributes="class view/klass">
+    <input id="" name="" value="" class="hidden-widget" title=""
+           tabindex="" accesskey=""
+           type="hidden"
+           tal:attributes="id view/id;
+                           name view/name;
+                           value view/value" />
+    <tal:block repeat="widget view/subform/widgets/values">
+        <div class="label">
+          <label tal:attributes="for widget/id">
+            <span i18n:translate=""
+                tal:content="widget/label">label</span>
+            <span class="required"
+                  tal:condition="widget/required">*</span>
+          </label>
+        </div>
+        <div tal:condition="widget/error"
+             tal:replace="structure widget/error/render">error</div>
+        <div class="widget" tal:content="structure widget/render">
+          <input type="text" size="24" value="" />
+        </div>
+    </tal:block>
+</div>

@@ -11,5 +11,5 @@ class IGroupedSelectWidget(Interface):
     pass
 
 
-class IRDFObjectWidget(Interface):
+class IRDFObjectPropertyWidget(Interface):
     pass

@@ -5,17 +5,8 @@
     xmlns:i18n="http://namespaces.zope.org/i18n"
     i18n_domain="gu.z3cform.rdf">
 
-    <!-- TODO: this here is needed for the tests to work
-    could do manual zope.component.provideAdapter calls in setUp
-    instead -->
-
-
     <adapter
         factory=".converter.RDFN3DataConverter"
-        />
-
-    <adapter
-        factory=".converter.RDFObjectConverter"
         />
 
     <adapter
@@ -34,10 +25,6 @@
 
     <adapter
         factory=".formextender.RDFFormExtender" />
-
-    <adapter
-        factory=".object.SubformAdapter"
-        />
 
     <adapter
         for="zope.interface.Interface
@@ -98,8 +85,8 @@
         />
 
     <utility
-        component=".supermodel.RDFObjectHandler"
-        name="gu.z3cform.rdf.schema.RDFObjectField"
+        component=".supermodel.RDFObjectPropertyHandler"
+        name="gu.z3cform.rdf.schema.RDFObjectPropertyField"
         />
 
 </configure>

@@ -61,7 +61,7 @@
     fresnel:propertyFormatDomain vcard:hasAddress ;
     fresnel:label "Has address" ;
     fresnel:group :DefaultGroup ;
-    z3c:field z3c:Object ;
+    z3c:field z3c:ObjectProperty ;
     .
 
 :vcardstreetAddress a fresnel:Format ;
@@ -99,6 +99,6 @@ z3c:TextLine a z3c:Field ;
     z3c:fieldName "gu.z3cform.rdf.schema.RDFLiteralLineField" ;
     .
 
-z3c:Object a z3c:Field ;
-    z3c:fieldName "gu.z3cform.rdf.schema.RDFObjectField" ;
+z3c:ObjectProperty a z3c:Field ;
+    z3c:fieldName "gu.z3cform.rdf.schema.RDFObjectPropertyField" ;
     .

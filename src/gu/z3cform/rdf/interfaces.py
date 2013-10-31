@@ -1,6 +1,5 @@
 from zope.interface import Interface
 from zope.schema import List, Object, TextLine
-from zope.schema.interfaces import IObject
 from gu.z3cform.rdf._bootstrap import URIRefField
 from rdflib import XSD
 from ordf.namespace import DC
@@ -125,21 +124,6 @@ class IRDFChoiceField(IRDFDataPropertyField):
           to restrict the set of elements that can be linked.
     """
     pass
-
-
-class IRDFObjectField(IRDFObjectPropertyField, IObject):
-    """
-    A field handling rdflib URIRefs
-
-    TODO: might be nice to support RDF Classes, or SPARQL queries here
-          to restrict the set of elements that can be linked.
-    """
-
-    # TODO: rename to range?
-    classuri = URIRefField(
-        title=u'Class URI',
-        required=True,
-        )
 
 
 # Tools and objects

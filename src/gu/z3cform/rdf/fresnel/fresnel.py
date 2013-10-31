@@ -242,7 +242,7 @@ class Lens(Graph):
                              FRESNEL["PropertyDescription"])):
                     x = self.one((prop, FRESNEL["sublens"], None))
                     if x:
-                        # standard fresnel sublens generates SubForm / ObjectField with different context
+                        # standard fresnel sublens generates SubForm / ObjectPropertyField with different context
                         lens = self.fresnel.lenses.get(x[2])
                         subprop = self.one((prop, FRESNEL['property'], None))
                         # TODO: might check for fresnel:use here and/or change of fresnel:group

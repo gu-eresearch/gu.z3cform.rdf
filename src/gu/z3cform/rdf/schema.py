@@ -8,7 +8,7 @@ from rdflib.util import from_n3
 from gu.z3cform.rdf.interfaces import IRDFN3Field, IRDFMultiValueField
 from gu.z3cform.rdf.interfaces import IRDFLiteralField, IRDFLiteralLineField
 from gu.z3cform.rdf.interfaces import IRDFURIRefField, IRDFChoiceField
-from gu.z3cform.rdf.interfaces import IRDFObjectField, IRDFDateField
+from gu.z3cform.rdf.interfaces import IRDFObjectPropertyField, IRDFDateField
 from gu.z3cform.rdf.interfaces import IRDFDateRangeField, IRDFField
 from gu.z3cform.rdf.vocabulary import SparqlTreeVocabularyFactory
 from ordf.namespace import DC
@@ -217,22 +217,11 @@ class RDFGroupedURIChoiceField(Choice):
         self.prop = prop
 
 
-@implementer(IRDFObjectField, IObject)
-class RDFObjectField(Field):
-    # Implement IObject to trigger special handling on
-    # z3c.form.form.applyChanges
-
-    prop = FieldProperty(IRDFField['prop'])
-
-    classuri = FieldProperty(IRDFObjectField['classuri'])
-
-    def __init__(self, prop, **kw):  # classuri, **kw):
-        self.classuri = kw.pop('classuri', None)
-        super(RDFObjectField, self).__init__(**kw)
-        self.prop = prop
+@implementer(IRDFObjectPropertyField)
+class RDFObjectPropertyField(RDFURIRefField):
 
     def _validate(self, value):
-        super(RDFObjectField, self)._validate(value)
+        super(RDFObjectPropertyField, self)._validate(value)
 
         # schema has to be provided by value
         # if not self.schema.providedBy(value):
@@ -253,49 +242,4 @@ class RDFObjectField(Field):
         # # need to replace our previous value.
         #value = event.object
         import ipdb; ipdb.set_trace()
-        super(RDFObjectField, self).set(object, value)
-
-
-
-
-
-#         <configure
-#     xmlns="http://namespaces.zope.org/zope"
-#     xmlns:z3c="http://namespaces.zope.org/z3c"
-#     i18n_domain="z3c.form">
-
-#   <class class=".object.ObjectWidget">
-#     <require
-#         permission="zope.Public"
-#         interface="z3c.form.interfaces.IObjectWidget"
-#         />
-#   </class>
-
-#   <adapter
-#       factory=".object.ObjectFieldWidget"
-#       for="zope.schema.interfaces.IObject
-#            z3c.form.interfaces.IFormLayer"
-#       />
-
-#   <z3c:widgetTemplate
-#       mode="display"
-#       widget="z3c.form.interfaces.IObjectWidget"
-#       layer="z3c.form.interfaces.IFormLayer"
-#       template="object_display.pt"
-#       />
-
-#   <z3c:widgetTemplate
-#       mode="input"
-#       widget="z3c.form.interfaces.IObjectWidget"
-#       layer="z3c.form.interfaces.IFormLayer"
-#       template="object_input.pt"
-#       />
-
-#   <z3c:widgetTemplate
-#       mode="hidden"
-#       widget="z3c.form.interfaces.IObjectWidget"
-#       layer="z3c.form.interfaces.IFormLayer"
-#       template="object_input.pt"
-#       />
-
-# </configure>
+        super(RDFObjectPropertyField, self).set(object, value)

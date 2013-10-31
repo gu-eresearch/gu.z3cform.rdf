@@ -68,13 +68,11 @@ def getFieldsFromFresnelLens(lens, graph, resource):
             elif isinstance(sublens, Lens):
                 # we render a sub object....
                 #  retrieve graph this prop is pointing to and build form
-                fieldfactory = resolve("gu.z3cform.rdf.schema.RDFObjectField")
+                fieldfactory = resolve("gu.z3cform.rdf.schema.RDFObjectPropertyField")
                 label = format.label(prop)
                 fieldkw = {
                     'title': unicode(label),
                     '__name__': str(prop).translate(ID_CHAR_MAP),
-                    'classuri': sublens.value(sublens.identifier,
-                                              FRESNEL['classLensDomain']),
                     'required': False}
                 fieldinst = fieldfactory(prop=prop, **fieldkw)
                 # TODO: think about additional paremeters clasuri and lens. both are needed here on the field
@@ -87,7 +85,6 @@ def getFieldsFromFresnelLens(lens, graph, resource):
                 if multi.toPython() in ('true', '1', 'True', True):
                     # multivalued object field requested
                     fieldkw['value_type'] = fieldinst
-                    del fieldkw['classuri']
                     fieldfactory = resolve("gu.z3cform.rdf.schema.RDFMultiValueField")
                     fieldinst = fieldfactory(prop=prop, **fieldkw)
 

@@ -57,27 +57,11 @@ class GraphDataManager(DataManager):
         # TODO: what if field is defined as single, but there are
         #       multiple values?  showing one would hide the others,
         #       showing all would confuse the field
-        # TODO: this code can't deal with sub ojects referenced via BNodes
-        # DEL: if len(value) > 1 or ICollection.providedBy(self.field):
         if ICollection.providedBy(self.field):
-            # check value_type .. if object, we'll retrieve a graph
-            if IRDFObjectPropertyField.providedBy(self.field.value_type):
-                # load ass subgraphs
-                # TODO: do I need to filter out empty graphs?
-                handler = getUtility(IORDF).getHandler()
-                # TODO: 3 possibilities here... we find it in current
-                # graph or in separate or we have to run a query
-                # Assume separate Graph here
-                value = [handler.get(v) for v in value]
             return value
         if len(value) == 1:
             # return only one value, the field doesn't support more anyway
-            value = value[0]
-            if IRDFObjectPropertyField.providedBy(self.field):
-                handler = getUtility(IORDF).getHandler()
-                value = handler.get(value)
-
-            return value
+            return value[0]
         # TODO: check shoulde probably fail here or never reach?
         return None
 
@@ -101,44 +85,33 @@ class GraphDataManager(DataManager):
         #       which prop do I have to update if I remove all?
         #    If I keep track of graphs and remove one, I'll have to make sure I remove
         #       all other props pointing to it as well
-
         handler = getUtility(IORDF).getHandler()
         olddata = list(self.graph.objects(self.subj, self.prop))
         self.graph.remove((self.subj, self.prop, None))
-        if value is None:
-            return
+        # if value is None:
+        #     handler.put(self.graph)
+        #     return
         # TODO: can we do IObject for sub-forms to deal with BNodes?
         if not ICollection.providedBy(self.field):
             value = [value]
-        for val in value:
-            if val is not None:
-                # FIXME: check conversion of value to URIRef or Literal?
-                if isinstance(val, Graph):
-                    # a multivalue object field might send in a whole graph
-                    self.graph.add((self.subj, self.prop, val.identifier))
-                    # TODO: check why this is not managed by
-                    # ContextGraphDataManagerForObjectFields
-                    if isinstance(val, ConjunctiveGraph):
-                        for g in val.contexts():
-                            handler.put(g)
-                    else:
-                        handler.put(val)
-                    # remove current graphs from olddata
-                    if val.identifier in olddata:
-                        olddata.remove(val.identifier)
-                else:
+        if value is not None:
+            for val in value:
+                if val is not None:
+                    if val in olddata:
+                        olddata.remove(val)
                     self.graph.add((self.subj, self.prop, val))
         # clean up orphaned graphs in case we dealt with a multivalue object widget
-        for identifier in olddata:
-            # FIXME: here are multiple use cases (1 is supported)
-            #   1. current graph has multiple properties that refer to removed graph
-            #   2. there are other graphs in the store that might refer to the removed graph
-            #   3. I assume there are more
-            self.graph.remove((self.subj, None, identifier))
-            handler.remove(identifier)
+        if IRDFObjectPropertyField.providedBy(self.field):
+            for identifier in olddata:
+                # FIXME: here are multiple use cases (1 is supported)
+                #   1. current graph has multiple properties that refer to removed graph
+                #   2. there are other graphs in the store that might refer to the removed graph
+                #   3. I assume there are more
+                # TODO: do this only for objectporperties
+                self.graph.remove((self.subj, None, identifier))
+                handler.remove(identifier)
         # persist current graph
         handler.put(self.graph)
-
 
     def canAccess(self):
         """Can the value be accessed."""

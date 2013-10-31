@@ -9,23 +9,38 @@
         mode="display"
         widget=".interfaces.IGroupedSelectWidget"
         layer="z3c.form.interfaces.IFormLayer"
-        template="groupedselect_display.pt" />
+        template="groupedselect_display.pt"
+        />
     <z3c:widgetTemplate
         mode="input"
         widget=".interfaces.IGroupedSelectWidget"
         layer="z3c.form.interfaces.IFormLayer"
-        template="groupedselect_input.pt" />
+        template="groupedselect_input.pt"
+        />
     <z3c:widgetTemplate
         mode="hidden"
         widget=".interfaces.IGroupedSelectWidget"
         layer="z3c.form.interfaces.IFormLayer"
-        template="groupedselect_hidden.pt" />
+        template="groupedselect_hidden.pt"
+        />
 
-  <adapter
-      factory=".object.RDFObjectFieldWidget"
-      for="gu.z3cform.rdf.interfaces.IRDFObjectField
-           z3c.form.interfaces.IFormLayer"
-      />
-
+    <adapter
+        factory=".objectproperty.RDFObjectPropertyFieldWidget"
+        for="gu.z3cform.rdf.interfaces.IRDFObjectPropertyField
+             z3c.form.interfaces.IFormLayer"
+        />
+    <z3c:widgetTemplate
+        mode="display"
+        widget=".interfaces.IRDFObjectPropertyWidget"
+        layer="z3c.form.interfaces.IFormLayer"
+        template="objectproperty_display.pt"
+        />
+    <z3c:widgetTemplate
+        mode="input"
+        widget=".interfaces.IRDFObjectPropertyWidget"
+        layer="z3c.form.interfaces.IFormLayer"
+        template="objectproperty_input.pt"
+        />
+    <!-- hidden can just fallback to standard hidden text input -->
 
 </configure>

@@ -32,7 +32,7 @@ def test_suite():
             checker=checker,
             ),
         doctest.DocFileSuite(
-            '../object.txt',
+            '../objectproperty.txt',
             setUp=setUp, tearDown=testing.tearDown,
             optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS,
             checker=checker,
