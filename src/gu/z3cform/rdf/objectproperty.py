@@ -1,4 +1,4 @@
-from z3c.form.interfaces import ISubformFactory, IFormLayer, NO_VALUE, ISubForm, IHandlerForm, IActionForm, IActionHandler, IAfterWidgetUpdateEvent, IActions, IEditForm, IAddForm
+from z3c.form.interfaces import ISubformFactory, IFormLayer, NO_VALUE, ISubForm, IHandlerForm, IActionForm, IActionHandler, IAfterWidgetUpdateEvent, IActions, IEditForm, IAddForm, DISPLAY_MODE, IDisplayForm
 from z3c.form import button, form
 from z3c.form.field import Fields
 from zope.interface import Interface, implementer
@@ -131,6 +131,21 @@ class AddRDFObjectPropertySubForm(RDFObjectPropertySubForm):
          IRDFObjectPropertyField)
 class AddRDFObjectPropertySubformFactory(RDFObjectPropertySubformFactory):
     subformclass = AddRDFObjectPropertySubForm
+
+
+class DisplayRDFObjectPropertySubForm(RDFObjectPropertySubForm):
+
+    mode = DISPLAY_MODE
+
+
+@adapter(Interface,
+         IFormLayer,
+         IDisplayForm,
+         IRDFObjectPropertyWidget,
+         IRDFObjectPropertyField)
+class AddRDFObjectPropertySubformFactory(RDFObjectPropertySubformFactory):
+    subformclass = DisplayObjectPropertySubForm
+
 
 
 from zope.interface import Interface, alsoProvides

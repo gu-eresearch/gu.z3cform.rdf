@@ -89,4 +89,13 @@
         name="gu.z3cform.rdf.schema.RDFObjectPropertyField"
         />
 
+    <adapter
+        factory=".objectproperty.EditRDFObjectPropertySubformFactory"/>
+
+    <adapter
+        factory=".objectproperty.AddRDFObjectPropertySubformFactory"/>
+
+    <adapter
+        factory=".objectproperty.DisplayRDFObjectPropertySubformFactory"/>
+
 </configure>
