@@ -143,7 +143,7 @@ class DisplayRDFObjectPropertySubForm(RDFObjectPropertySubForm):
          IDisplayForm,
          IRDFObjectPropertyWidget,
          IRDFObjectPropertyField)
-class AddRDFObjectPropertySubformFactory(RDFObjectPropertySubformFactory):
+class DisplayRDFObjectPropertySubformFactory(RDFObjectPropertySubformFactory):
     subformclass = DisplayObjectPropertySubForm
 
 
