@@ -50,9 +50,6 @@ class RDFFormExtender(FormExtender):
             groups, fields = getFieldsFromFresnelLens(lens, individual.graph,
                                                       individual.identifier)
 
-        # FIXME: fix his upstream in plone.core
-        # work around bug in plone core, where form.groups is modified on the class
-        self.form.groups = tuple(self.form.groups)
         # transfer fresnel fields to form:
         if fields:
             LOG.info("adding main fields %s", fields.keys())
