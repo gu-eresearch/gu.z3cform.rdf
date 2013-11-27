@@ -22,12 +22,17 @@ from ordf.utils import get_identifier
 
 class TransactionAwareHandler(Handler):
 
-    dm = None
+    _dm = None
 
     def __init__(self, **kw):
         super(TransactionAwareHandler, self).__init__(**kw)
-        self.dm = ORDFDataManager(self)
         LOG.info("Creating new handler")
+
+    @property
+    def dm(self):
+        if not self._dm:
+            self._dm = ORDFDataManager(self)
+        return self._dm
 
     def get(self, identifier):
         identifier = get_identifier(identifier)
@@ -76,34 +81,32 @@ class ORDFDataManager(threading.local):
 
     implements(ISavepointDataManager)
 
-    transaction_manager = transaction.manager
+    transaction_manager = None
 
-    joined = False
     handler = None
 
     def __init__(self, handler):
         self.handler = handler
-        self._reset()
-        # join transaction anyway to clear caches, but be smart and don't do anything
-        tn = transaction.get()
-        self.joined = True
-        LOG.info("JOIN Transaction: %s", tn)
-        tn.join(self)
-
-    def _init(self):
-        if not self.joined:
-            tn = transaction.get()
-            self.joined = True
-            LOG.info("JOIN Transaction: %s", tn)
-            tn.join(self)
-
-    def _reset(self):
-        self.joined = False
+        self.transaction_manager = transaction.manager
+        self.transaction = None
         self.cache = {}
         self.to_remove = []
         self.modified = set()
-        # transaction.get().unjoin(self) don't do this here ... might cause troubles in 2 phase commit
-        # and it's used in __init__ as well
+
+    def _reset(self):
+        self.cache = {}
+        self.to_remove = []
+        self.modified = set()
+        #LOG.info("Clear for Handler")
+        self.handler._dm = None
+        # TODO: should we leave the transaction here? or check status?
+        self.transaction = None
+
+    def _join(self):
+        if self.transaction is None:
+            self.transaction = self.transaction_manager.get()
+            #LOG.info("Join Transaction")
+            self.transaction.join(self)
 
     def get(self, identifier):
         return self.cache.get(identifier, None)
@@ -112,15 +115,15 @@ class ORDFDataManager(threading.local):
         '''
         assumes that a graph has been modified, unless overriden
         '''
+        self._join()
         if modified:
             #LOG.info("MARK modified %s", graph.identifier)
             self.modified.add(graph.identifier)
-        self._init()
         #LOG.info("PUT graph %s into cache", graph.identifier)
         self.cache[graph.identifier] = graph
 
     def remove(self, identifier):
-        self._init()
+        self._join()
         self.to_remove.append(identifier)
 
     def abort(self, transaction):
