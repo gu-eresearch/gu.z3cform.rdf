@@ -40,7 +40,7 @@ def _toFormFields(fields):
     fields = field.Fields(*fields)
     for name in fields:
         if hasattr(fields[name].field, 'widgetFactory'):
-            LOG.info("apply widgetFactory %s to %s", fields[name].field.widgetFactory, name)
+            #LOG.info("apply widgetFactory %s to %s", fields[name].field.widgetFactory, name)
             for key, item in fields[name].field.widgetFactory.items():
                 fields[name].widgetFactory[key] = item
     return fields
@@ -55,7 +55,7 @@ def getFieldsFromFresnelLens(lens, graph, resource):
     groups = []
     for prop, sublens, format in lens.properties(graph, resource,
                                                  sorted=True):
-        LOG.info("check for field %s", prop)
+        #LOG.info("check for field %s", prop)
         if sublens is not None:
             if isinstance(sublens, PropertyGroup):
                 _, subfields = getFieldsFromFresnelLens(sublens, graph,

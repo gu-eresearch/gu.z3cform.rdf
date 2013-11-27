@@ -38,7 +38,8 @@ class TransactionAwareHandler(Handler):
             #   we only put stuff, that will be put back to store
             self.dm.put(result, False)
         else:
-            LOG.info("Handler: Returned cached graph %s", identifier)
+            #LOG.info("Handler: Returned cached graph %s", identifier)
+            pass
         return result
 
     def put(self, graph):
@@ -49,7 +50,7 @@ class TransactionAwareHandler(Handler):
         for ctx in contexts:
             identifier = get_identifier(ctx)
             self.dm.put(ctx)
-        LOG.info("Handler: schedule put(%s)", identifier)
+        #LOG.info("Handler: schedule put(%s)", identifier)
 
     def append(self, frag):
         graph = self.get(frag.identifier)
@@ -58,11 +59,11 @@ class TransactionAwareHandler(Handler):
         else:
             graph = frag
         self.put(graph)
-        LOG.info("Handler: schedule append(%s, %s)", frag.identifier)
+        #LOG.info("Handler: schedule append(%s, %s)", frag.identifier)
 
     def remove(self, identifier):
         self.dm.remove(identifier)
-        LOG.info("Handler: schedule remove(%s)", identifier)
+        #LOG.info("Handler: schedule remove(%s)", identifier)
 
     def _do_put(self, graph):
         super(TransactionAwareHandler, self).put(graph)
@@ -112,10 +113,10 @@ class ORDFDataManager(threading.local):
         assumes that a graph has been modified, unless overriden
         '''
         if modified:
-            LOG.info("MARK modified %s", graph.identifier)
+            #LOG.info("MARK modified %s", graph.identifier)
             self.modified.add(graph.identifier)
         self._init()
-        LOG.info("PUT graph %s into cache", graph.identifier)
+        #LOG.info("PUT graph %s into cache", graph.identifier)
         self.cache[graph.identifier] = graph
 
     def remove(self, identifier):
@@ -123,7 +124,7 @@ class ORDFDataManager(threading.local):
         self.to_remove.append(identifier)
 
     def abort(self, transaction):
-        LOG.info("TRANSACTION: abort %s", self)
+        #LOG.info("TRANSACTION: abort %s", self)
         self.tpc_abort(transaction)
 
     # Two-phase commit protocol.  These methods are called by the ITransaction
@@ -137,8 +138,9 @@ class ORDFDataManager(threading.local):
         transaction is the ITransaction instance associated with the
         transaction being committed.
         """
-        LOG.info("TRANSACTION: tpc_begin %s", self)
+        #LOG.info("TRANSACTION: tpc_begin %s", self)
         # TODO: prepare whatever is necessary to commit transaction
+        pass
 
     def commit(self, transaction):
         """Commit modifications to registered objects.
@@ -151,7 +153,7 @@ class ORDFDataManager(threading.local):
         errors occur, the data manager should be prepared to make the
         changes persist when tpc_finish is called.
         """
-        LOG.info("TRANSACTION: commit %s", self)
+        #LOG.info("TRANSACTION: commit %s", self)
         # do changesets here
         if self.modified or self.to_remove:
             # FIXME: get real username and possibly create Agent here
@@ -160,7 +162,7 @@ class ORDFDataManager(threading.local):
             cc = self.handler.context(user=uname, reason=reason)
             for identifier in self.modified:
                 if identifier not in self.cache:
-                    LOG.warn("medified identifier not found in cache: %s", identifier)
+                    LOG.warn("modified identifier not found in cache: %s", identifier)
                     continue
                 cc.add(self.cache[identifier])
                 #remove changed graph from cache to force refetch for changeset
@@ -181,8 +183,9 @@ class ORDFDataManager(threading.local):
         transaction is the ITransaction instance associated with the
         transaction being committed.
         """
-        LOG.info("TRANSACTION: tpc_vote %s", self)
+        #LOG.info("TRANSACTION: tpc_vote %s", self)
         # TODO: last chance checks to see whether we sholud commit or not
+        pass
 
     def tpc_finish(self, transaction):
         """Indicate confirmation that the transaction is done.
@@ -196,15 +199,15 @@ class ORDFDataManager(threading.local):
         database is not expected to maintain consistency; it's a
         serious error.
         """
-        LOG.info("TRANSACTION: tpc_finish %s", self)
+        #LOG.info("TRANSACTION: tpc_finish %s", self)
         # ok let's work it out here:
         for identifier in self.modified:
             #for identifier, graph in self.cache.items():
             graph = self.cache[identifier]
-            LOG.info("                        put: %s", identifier)
+            #LOG.info("                        put: %s", identifier)
             self.handler._do_put(graph)
         for identifier in self.to_remove:
-            LOG.info("                        del: %s", identifier)
+            #LOG.info("                        del: %s", identifier)
             self.handler._do_remove(identifier)
         self._reset()
 
