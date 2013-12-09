@@ -7,7 +7,8 @@ from zope.schema.vocabulary import SimpleVocabulary, TreeVocabulary, SimpleTerm
 from z3c.formwidget.query.interfaces import IQuerySource
 from rdflib.namespace import split_uri
 from collections import defaultdict
-
+from AccessControl import getSecurityManager
+from ordf.utils import get_identifier
 
 class QuerySimpleVocabulary(SimpleVocabulary):
 
@@ -131,6 +132,11 @@ class SparqlVocabularyFactory(object):
         g = IGraph(context, None)
         if g is not None:
             params['contexturi'] = g.identifier.n3()
+            
+        member = getSecurityManager().getUser()
+        if member is not None:
+            params['memberuri'] = get_identifier(member) 
+            
         r = h.query(self.query.safe_substitute(params))
         # this here would be the natural way when parsing a sparql-xml-result
         #uris = sorted([item['g'] for item in g])
