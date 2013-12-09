@@ -27,6 +27,8 @@ class TransactionAwareHandler(Handler):
     def __init__(self, **kw):
         super(TransactionAwareHandler, self).__init__(**kw)
         LOG.info("Creating new handler")
+        # FIXME create self._dm first, so that it is shared across threads. (it's a thread.local anyway)
+        self._dm = ORDFDataManager(self)
 
     @property
     def dm(self):
@@ -53,7 +55,7 @@ class TransactionAwareHandler(Handler):
         else:
             contexts = graph.contexts()
         for ctx in contexts:
-            identifier = get_identifier(ctx)
+            #identifier = get_identifier(ctx)
             self.dm.put(ctx)
         #LOG.info("Handler: schedule put(%s)", identifier)
 
@@ -78,6 +80,8 @@ class TransactionAwareHandler(Handler):
 
 
 class ORDFDataManager(threading.local):
+    # TODO: needs to change together with IORDF utility to make it thread safe.
+    #       sometimes the wrong thread get's a wrong handler with a wrong dm.
 
     implements(ISavepointDataManager)
 
@@ -85,9 +89,9 @@ class ORDFDataManager(threading.local):
 
     handler = None
 
-    def __init__(self, handler):
+    def __init__(self, handler, tm=transaction.manager):
         self.handler = handler
-        self.transaction_manager = transaction.manager
+        self.transaction_manager = tm
         self.transaction = None
         self.cache = {}
         self.to_remove = []
@@ -98,7 +102,9 @@ class ORDFDataManager(threading.local):
         self.to_remove = []
         self.modified = set()
         #LOG.info("Clear for Handler")
-        self.handler._dm = None
+        # self.handler._dm = None ... # Don't delete dm. it is shared across all threads
+        # self.handler = None ... # Dan't delete hander ... shared across threads'
+        #self.transaction_manager = None ... shared as well
         # TODO: should we leave the transaction here? or check status?
         self.transaction = None
 
@@ -117,9 +123,12 @@ class ORDFDataManager(threading.local):
         '''
         self._join()
         if modified:
-            #LOG.info("MARK modified %s", graph.identifier)
+            # if graph.identifier not in self.modified:
+            #     LOG.info("MARK modified %s", graph.identifier)
+            # else:
+            #     LOG.info("Already marked modified %s", graph.identifier)
             self.modified.add(graph.identifier)
-        #LOG.info("PUT graph %s into cache", graph.identifier)
+        # LOG.info("PUT graph %s into cache %s", graph.identifier, graph.identifier.__class__)
         self.cache[graph.identifier] = graph
 
     def remove(self, identifier):
@@ -143,6 +152,8 @@ class ORDFDataManager(threading.local):
         """
         #LOG.info("TRANSACTION: tpc_begin %s", self)
         # TODO: prepare whatever is necessary to commit transaction
+        if self.transaction != transaction:
+            LOG.fatal("Not My Transaction begin")
         pass
 
     def commit(self, transaction):
@@ -156,6 +167,8 @@ class ORDFDataManager(threading.local):
         errors occur, the data manager should be prepared to make the
         changes persist when tpc_finish is called.
         """
+        if self.transaction != transaction:
+            LOG.fatal("Not My Transaction commit")
         #LOG.info("TRANSACTION: commit %s", self)
         # do changesets here
         if self.modified or self.to_remove:
@@ -176,6 +189,7 @@ class ORDFDataManager(threading.local):
             #
             # this should add the changset graphs to the cache?
             cc.commit()
+            # FIXEM: sometimes it happens that self.cache is empty aftec cc.commit, which should put all changed graphs back into cache via handler
 
     def tpc_vote(self, transaction):
         """Verify that a data manager can commit the transaction.
@@ -202,13 +216,22 @@ class ORDFDataManager(threading.local):
         database is not expected to maintain consistency; it's a
         serious error.
         """
+        if self.transaction != transaction:
+            LOG.fatal("Not My Transaction finish")
         #LOG.info("TRANSACTION: tpc_finish %s", self)
         # ok let's work it out here:
         for identifier in self.modified:
             #for identifier, graph in self.cache.items():
-            graph = self.cache[identifier]
-            #LOG.info("                        put: %s", identifier)
-            self.handler._do_put(graph)
+            # LOG.info('Do Put for %s, (%s)', identifier, identifier.__class__)
+            try:
+                graph = self.cache[identifier]
+                #LOG.info("                        put: %s", identifier)
+                self.handler._do_put(graph)
+            except KeyError:
+                # TODO: This KeyError should never happen but if it does,
+                #       we make sure not to kill the 2stage-commit.
+                LOG.fatal("Modified graph %s not in cache during tpc_finish", identifier)
+
         for identifier in self.to_remove:
             #LOG.info("                        del: %s", identifier)
             self.handler._do_remove(identifier)
@@ -226,6 +249,8 @@ class ORDFDataManager(threading.local):
 
         This should never fail.
         """
+        if self.transaction != transaction:
+            LOG.fatal("Not My Transaction abort")
         LOG.info("TRANSACTION: tpc_abort %s", self)
         self._reset()
         # TODO: undo changes, make sure nothing get's written to store
