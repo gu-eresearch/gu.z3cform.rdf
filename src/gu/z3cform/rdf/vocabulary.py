@@ -2,13 +2,11 @@ from string import Template
 from zope.schema.interfaces import IVocabularyFactory, ITitledTokenizedTerm
 from zope.interface import implements
 from zope.component import getUtility
-from gu.z3cform.rdf.interfaces import IORDF, IGraph
+from gu.z3cform.rdf.interfaces import IORDF, IGraph, ISparqlVocabularyTool
 from zope.schema.vocabulary import SimpleVocabulary, TreeVocabulary, SimpleTerm
 from z3c.formwidget.query.interfaces import IQuerySource
 from rdflib.namespace import split_uri
 from collections import defaultdict
-from AccessControl import getSecurityManager
-from ordf.utils import get_identifier
 
 class QuerySimpleVocabulary(SimpleVocabulary):
 
@@ -128,15 +126,7 @@ class SparqlVocabularyFactory(object):
 
     def __call__(self, context):
         h = getUtility(IORDF).getHandler()
-        params = {}
-        g = IGraph(context, None)
-        if g is not None:
-            params['contexturi'] = g.identifier.n3()
-            
-        member = getSecurityManager().getUser()
-        if member is not None:
-            params['memberuri'] = get_identifier(member) 
-            
+        params = getUtility(ISparqlVocabularyTool).getContextualParameters(context)     
         r = h.query(self.query.safe_substitute(params))
         # this here would be the natural way when parsing a sparql-xml-result
         #uris = sorted([item['g'] for item in g])

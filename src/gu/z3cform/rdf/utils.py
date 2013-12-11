@@ -1,6 +1,7 @@
 import os.path
 import re
-
+from zope.interface import implements
+from gu.z3cform.rdf.interfaces import IGraph, ISparqlVocabularyTool
 
 def guessRDFFileFormat(format, contentType, filename):
     """
@@ -68,3 +69,14 @@ class Period(object):
         if self.scheme:
             parts.append("scheme=%s;" % self.scheme)
         return u' '.join(parts)
+
+
+class SparqlVocabularyTool(object):
+    implements(ISparqlVocabularyTool)
+    
+    def getContextualParameters(self, context):
+        params = {}
+        g = IGraph(context, None)
+        if g is not None:
+            params['contexturi'] = g.identifier.n3()
+        return params

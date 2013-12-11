@@ -89,6 +89,11 @@
         name="gu.z3cform.rdf.schema.RDFObjectPropertyField"
         />
 
+    <utility
+        provides=".interfaces.ISparqlVocabularyTool"
+        factory=".utils.SparqlVocabularyTool"
+        />
+        
     <adapter
         factory=".objectproperty.EditRDFObjectPropertySubformFactory"/>
 

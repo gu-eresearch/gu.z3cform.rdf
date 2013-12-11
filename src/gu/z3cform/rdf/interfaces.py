@@ -194,3 +194,12 @@ class IFresnelVocabularyFactory(Interface):
     """
     Marker interface for vocabulary factories registered via Fresnel.
     """
+
+
+class ISparqlVocabularyTool(Interface):
+    """
+    Allows for additional parameters to be passed to SPARQL queries
+    """
+    def getContextualParameters(self, context):
+        # make this __call__ instead?
+        pass
