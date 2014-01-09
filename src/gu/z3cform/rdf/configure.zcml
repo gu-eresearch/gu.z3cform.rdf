@@ -93,7 +93,7 @@
         provides=".interfaces.ISparqlVocabularyTool"
         factory=".utils.SparqlVocabularyTool"
         />
-        
+
     <adapter
         factory=".objectproperty.EditRDFObjectPropertySubformFactory"/>
 
@@ -102,5 +102,11 @@
 
     <adapter
         factory=".objectproperty.DisplayRDFObjectPropertySubformFactory"/>
+
+    <subscriber
+        handler=".objectproperty.SubformHandlerSubscriber"/>
+
+    <adapter
+        factory=".objectproperty.SubformAwareActions"/>
 
 </configure>

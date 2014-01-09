@@ -6,7 +6,8 @@ from zope.component import adapter, getUtility, queryMultiAdapter
 from gu.z3cform.rdf.interfaces import IRDFObjectPropertyField, IORDF
 from gu.z3cform.rdf.widgets.interfaces import IRDFObjectPropertyWidget
 from ordf.graph import _Graph,  Graph
-from rdflib import URIRef
+from ordf.namespace import FRESNEL
+from rdflib import URIRef, RDF
 from gu.z3cform.rdf.fresnel import getFieldsFromFresnelLens
 from gu.z3cform.rdf.schema import URIRefField
 
@@ -33,6 +34,13 @@ class RDFObjectPropertySubForm(form.BaseForm):
             self.status = self.formErrorsMessage
             return
         content = self.getContent()
+        if content.value(content.identifier, RDF['type']) is None:
+            # check lens for classDomain
+            lens = self.__parent__.field.lens
+            if lens:
+                rtype = lens.value(lens.identifier, FRESNEL['classLensDomain'])
+                if rtype:
+                    content.add((content.identifier, RDF['type'], rtype))
         changed = form.applyChanges(self, content, data)
         if changed:
             #zope.event.notify(
@@ -122,6 +130,8 @@ class AddRDFObjectPropertySubForm(RDFObjectPropertySubForm):
 
     @button.handler(form.AddForm.buttons['add'])
     def handleApply(self, action):
+        # TODO: here is probably the only place ever where we would add
+        #       rdf.type info to the newly created object.
         super(AddRDFObjectPropertySubForm, self).handleApply(action)
 
 @adapter(Interface,

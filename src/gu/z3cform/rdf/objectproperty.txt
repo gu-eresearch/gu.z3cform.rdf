@@ -54,7 +54,7 @@ We also need an AddForm and request to create new objects
      ('http___xmlns_com_foaf_0_1_familyName',
       <TextWidget 'form.widgets.http___xmlns_com_foaf_0_1_familyName'>),
      ('http___www_w3_org_2006_vcard_ns_hasAddress',
-      <RDFObjectWidget 'form.widgets.http___www_w3_org_2006_vcard_ns_hasAddress'>)]
+      <RDFObjectPropertyWidget 'form.widgets.http___www_w3_org_2006_vcard_ns_hasAddress'>)]
 
 So far all the fields are there. Let us check the object field as well
 
@@ -67,8 +67,7 @@ So far all the fields are there. Let us check the object field as well
      ('http___www_w3_org_2006_vcard_ns_postalCode',
       <Field 'http___www_w3_org_2006_vcard_ns_postalCode'>),
      ('http___www_w3_org_2006_vcard_ns_country',
-      <Field 'http___www_w3_org_2006_vcard_ns_country'>),
-     ('identifier', <Field 'identifier'>)]
+      <Field 'http___www_w3_org_2006_vcard_ns_country'>)]
     >>> pprint(objwidget.subform.widgets.items())
     [('http___www_w3_org_2006_vcard_ns_streetAddress',
       <TextWidget 'form.widgets.http___www_w3_org_2006_vcard_ns_hasAddress.widgets.http___www_w3_org_2006_vcard_ns_streetAddress'>),
@@ -77,16 +76,14 @@ So far all the fields are there. Let us check the object field as well
      ('http___www_w3_org_2006_vcard_ns_postalCode',
       <TextWidget 'form.widgets.http___www_w3_org_2006_vcard_ns_hasAddress.widgets.http___www_w3_org_2006_vcard_ns_postalCode'>),
      ('http___www_w3_org_2006_vcard_ns_country',
-      <TextWidget 'form.widgets.http___www_w3_org_2006_vcard_ns_hasAddress.widgets.http___www_w3_org_2006_vcard_ns_country'>),
-     ('identifier',
-      <TextWidget 'form.widgets.http___www_w3_org_2006_vcard_ns_hasAddress.widgets.identifier'>)]
+      <TextWidget 'form.widgets.http___www_w3_org_2006_vcard_ns_hasAddress.widgets.http___www_w3_org_2006_vcard_ns_country'>)]
 
 We shoud be able to fill out the form and submit it.
 
     >>> request = testing.TestRequest(form={
     ... 'form.widgets.http___xmlns_com_foaf_0_1_givenName': u'firstname',
     ... 'form.widgets.http___www_w3_org_2006_vcard_ns_hasAddress.widgets.http___www_w3_org_2006_vcard_ns_locality': u'cityname',
-    ... 'form.widgets.http___www_w3_org_2006_vcard_ns_hasAddress-empty-marker': u'',
+    ... 'form.widgets.http___www_w3_org_2006_vcard_ns_hasAddress': u'',
     ... 'form.buttons.add': u'Add'}
     ... )
     >>> add_form = ExtensibleAddForm(context, request)
@@ -118,12 +115,10 @@ Let's now try to use an EditForm to change the data
     >>> edit_form = ExtensibleEditForm(context, request)
     >>> edit_form.update()
     >>> pprint([f.value for f in add_form.widgets.values()])
-    [u'firstname',
-     u'',
-     {'...}]
+    [u'firstname', u'', u'http://example.com/...']
     >>> objwidget = add_form.widgets['http___www_w3_org_2006_vcard_ns_hasAddress']
     >>> pprint([f.value for f in objwidget.subform.widgets.values()])
-    [u'', u'cityname', u'', u'', u'']
+    [u'', u'cityname', u'', u'']
 
 Let's do some editing
 
@@ -131,8 +126,7 @@ Let's do some editing
     ... 'form.widgets.http___xmlns_com_foaf_0_1_givenName': u'newname',
     ... 'form.widgets.http___www_w3_org_2006_vcard_ns_hasAddress.widgets.http___www_w3_org_2006_vcard_ns_locality': u'cityname',
     ... 'form.widgets.http___www_w3_org_2006_vcard_ns_hasAddress.widgets.http___www_w3_org_2006_vcard_ns_postalCode': u'1111',
-    ... 'form.widgets.http___www_w3_org_2006_vcard_ns_hasAddress.widgets.identifier': addruri,
-    ... 'form.widgets.http___www_w3_org_2006_vcard_ns_hasAddress-empty-marker': u'',
+    ... 'form.widgets.http___www_w3_org_2006_vcard_ns_hasAddress': addruri,
     ... 'form.buttons.apply': u'Apply'}
     ... )
     >>> edit_form = ExtensibleEditForm(context, request)
@@ -141,16 +135,10 @@ Let's do some editing
 check the form
 
     >>> pprint([f.value for f in edit_form.widgets.values()])
-    [u'newname',
-     u'',
-     {'...}]
+    [u'newname', u'', u'http://example.com/...']
     >>> objwidget = edit_form.widgets['http___www_w3_org_2006_vcard_ns_hasAddress']
     >>> pprint([f.value for f in objwidget.subform.widgets.values()])
-    [u'',
-     u'cityname',
-     u'1111',
-     u'',
-     rdflib.term.URIRef(u'...')]
+    [u'', u'cityname', u'1111', u'']
 
 and the data storage
 
@@ -169,8 +157,11 @@ and the data storage
 finally let's try the display form as well
 
     >>> from gu.z3cform.rdf.testing import ExtensibleDisplayForm
+    >>> from zope.interface import alsoProvides
+    >>> from z3c.form.interfaces import IDisplayForm
     >>> request = testing.TestRequest()
     >>> display_form = ExtensibleDisplayForm(context, request)
+    >>> alsoProvides(display_form, IDisplayForm)
     >>> html = display_form()
     >>> "newname" in html
     True
