@@ -58,9 +58,17 @@ class GraphDataManager(DataManager):
         #       multiple values?  showing one would hide the others,
         #       showing all would confuse the field
         if ICollection.providedBy(self.field):
+            if IRDFObjectPropertyField.providedBy(self.field.value_type):
+                # fetch graphs
+                handler = getUtility(IORDF).getHandler()
+                value = [handler.get(v) for v in value]
             return value
         if len(value) == 1:
             # return only one value, the field doesn't support more anyway
+            if IRDFObjectPropertyField.providedBy(self.field):
+                # fetch graphs
+                handler = getUtility(IORDF).getHandler()
+                value = [handler.get(v) for v in value]
             return value[0]
         # TODO: check shoulde probably fail here or never reach?
         return None
@@ -99,8 +107,13 @@ class GraphDataManager(DataManager):
                 if val is not None:
                     if val in olddata:
                         olddata.remove(val)
-                    self.graph.add((self.subj, self.prop, val))
+                    if IGraph.providedBy(val):
+                        self.graph.add((self.subj, self.prop, val.identifier))
+                        handler.put(val)
+                    else:
+                        self.graph.add((self.subj, self.prop, val))
         # clean up orphaned graphs in case we dealt with a multivalue object widget
+        # TODO: remove also for field.value_type = sbject feidl
         if IRDFObjectPropertyField.providedBy(self.field):
             for identifier in olddata:
                 # FIXME: here are multiple use cases (1 is supported)
