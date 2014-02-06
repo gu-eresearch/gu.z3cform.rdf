@@ -241,4 +241,5 @@ class RDFObjectPropertyField(RDFURIRefField):
         # # The event subscribers are allowed to replace the object, thus we
         # # need to replace our previous value.
         #value = event.object
+        import ipdb; ipdb.set_trace()
         super(RDFObjectPropertyField, self).set(object, value)
