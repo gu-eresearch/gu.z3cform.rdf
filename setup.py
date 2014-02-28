@@ -58,6 +58,7 @@ REQUIRES = [
         'z3c.formwidget.query',
         'plone.z3cform',
         'plone.supermodel', # TODO: optional?
+        'ordf',
         ]
 
 TESTS_REQUIRE = [
