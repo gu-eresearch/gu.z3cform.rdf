@@ -1,15 +1,19 @@
-from z3c.form.interfaces import ISubformFactory, IFormLayer, NO_VALUE, ISubForm, IHandlerForm, IActionForm, IActionHandler, IAfterWidgetUpdateEvent, IActions, IEditForm, IAddForm, DISPLAY_MODE, IDisplayForm
+from z3c.form.interfaces import (ISubformFactory, IFormLayer, ISubForm,
+                                 IHandlerForm, IActionHandler,
+                                 IAfterWidgetUpdateEvent, IEditForm,
+                                 IAddForm, DISPLAY_MODE, IDisplayForm
+                                 #IActions, NO_VALUE, IActionForm,
+                                 )
 from z3c.form import button, form
 from z3c.form.field import Fields
 from zope.interface import Interface, implementer
-from zope.component import adapter, getUtility, queryMultiAdapter
-from gu.z3cform.rdf.interfaces import IRDFObjectPropertyField, IORDF
+from zope.component import adapter, queryMultiAdapter
+from gu.z3cform.rdf.interfaces import IRDFObjectPropertyField
 from gu.z3cform.rdf.widgets.interfaces import IRDFObjectPropertyWidget
-from ordf.graph import _Graph,  Graph
 from ordf.namespace import FRESNEL
-from rdflib import URIRef, RDF
+from rdflib import RDF
 from gu.z3cform.rdf.fresnel import getFieldsFromFresnelLens
-from gu.z3cform.rdf.schema import URIRefField
+
 
 # TODO: move somewhere else
 @implementer(ISubForm, IHandlerForm)
@@ -49,11 +53,12 @@ class RDFObjectPropertySubForm(form.BaseForm):
         else:
             self.status = self.noChangesMessage
         # in case we are a ISubFormAware subform we can gat an IActions object
-        # FIXME: may not have _subforms attribute if there are no further subforms
+        # FIXME: may not have _subforms attribute if there are no
+        #        further subforms
         for subform in getattr(self, '_subforms', []):
             handler = queryMultiAdapter(
                 (subform, self.request, subform.getContent(), action),
-                 interface = IActionHandler)
+                interface=IActionHandler)
             if handler is not None:
                 subresult = handler()
                 # TODO: interpret subresult ....
@@ -64,12 +69,13 @@ class RDFObjectPropertySubForm(form.BaseForm):
         super(RDFObjectPropertySubForm, self).update()
 
     def setupFields(self):
-        # TODO: can I set them up without cotext? (would miss out on allProperties though)
+        # TODO: can I set them up without cotext? (would miss out on
+        #       allProperties though)
         context = self.getContent()
         lens = self.__parent__.field.lens
         if lens is not None:
             _, self.fields = getFieldsFromFresnelLens(lens, context,
-                                                 context.identifier)
+                                                      context.identifier)
         else:
             # TODO: raise error here?, without lens we can't do much
             self.fields = Fields()
@@ -91,8 +97,8 @@ class RDFObjectPropertySubForm(form.BaseForm):
             val = self.context
         # if is set up so that we always should have a context
         else:
-            # this wolud be a place to do custom stuff in case we ignore context
-            # or context is none
+            # this wolud be a place to do custom stuff in case we
+            # ignore context or context is none
             val = self.context
         return val
 
@@ -117,6 +123,7 @@ class EditRDFObjectPropertySubForm(RDFObjectPropertySubForm):
     def handleApply(self, action):
         super(EditRDFObjectPropertySubForm, self).handleApply(action)
 
+
 @adapter(Interface,
          IFormLayer,
          IEditForm,
@@ -133,6 +140,7 @@ class AddRDFObjectPropertySubForm(RDFObjectPropertySubForm):
         # TODO: here is probably the only place ever where we would add
         #       rdf.type info to the newly created object.
         super(AddRDFObjectPropertySubForm, self).handleApply(action)
+
 
 @adapter(Interface,
          IFormLayer,
@@ -157,8 +165,9 @@ class DisplayRDFObjectPropertySubformFactory(RDFObjectPropertySubformFactory):
     subformclass = DisplayRDFObjectPropertySubForm
 
 
-
 from zope.interface import Interface, alsoProvides
+
+
 class ISubformAware(Interface):
     pass
 
@@ -168,7 +177,8 @@ def SubformHandlerSubscriber(event):
     widget = event.widget
     if not IRDFObjectPropertyWidget.providedBy(widget):
         return
-    # look for parent form which is able to handle actions (skip groupform containers)
+    # look for parent form which is able to handle actions (skip
+    # groupform containers)
     # TODO: this checks just one level:
     # TODO: protect against double execution for same widget
     parentform = widget.form
@@ -184,12 +194,12 @@ def SubformHandlerSubscriber(event):
 from z3c.form.button import ButtonActions
 from zope.event import notify
 from z3c.form.action import ActionErrorOccurred, ActionSuccessful
-from z3c.form.interfaces import IActionHandler, ActionExecutionError
+from z3c.form.interfaces import ActionExecutionError
 
-@adapter(
-        ISubformAware,  # form
-        Interface,      # request
-        Interface)      # content
+
+@adapter(ISubformAware,  # form
+         Interface,      # request
+         Interface)      # content
 class SubformAwareActions(ButtonActions):
 
     def execute(self):
@@ -211,8 +221,9 @@ class SubformAwareActions(ButtonActions):
                     # we are here, so self.form should have subforms:
                     for subform in self.form._subforms:
                         handler = queryMultiAdapter(
-                            (subform, self.request, subform.getContent(), action),
-                            interface = IActionHandler)
+                            (subform, self.request,
+                             subform.getContent(), action),
+                            interface=IActionHandler)
                         if handler is not None:
                             subresult = handler()
                 except ActionExecutionError as error:
