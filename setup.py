@@ -3,7 +3,7 @@
 import os
 from setuptools import setup, find_packages
 
-version = '0.6-dev'
+version = '0.5.1'
 
 
 def read(*rnames):
@@ -33,7 +33,7 @@ def alltests():
     suite = unittest.TestSuite()
     base = pkg_resources.working_set.find(
         pkg_resources.Requirement.parse('zope.schema')).location
-    for dirpath, dirnames, sfilenames in os.walk(base):
+    for dirpath, dirnames, filenames in os.walk(base):
         if os.path.basename(dirpath) == 'tests':
             for filename in filenames:
                 if filename.endswith('.py') and filename.startswith('test'):
