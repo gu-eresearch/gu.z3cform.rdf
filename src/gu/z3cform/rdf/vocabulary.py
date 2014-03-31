@@ -95,6 +95,7 @@ class SparqlInstanceVocabularyFactory(object):
 
     def __init__(self, classuri, orderby=None):
         self.classuri = classuri
+        self.orderby = orderby
 
     def __call__(self, context):
         h = getUtility(IORDF).getHandler()
