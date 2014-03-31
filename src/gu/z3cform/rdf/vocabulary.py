@@ -2,11 +2,12 @@ from string import Template
 from zope.schema.interfaces import IVocabularyFactory, ITitledTokenizedTerm
 from zope.interface import implements
 from zope.component import getUtility
-from gu.z3cform.rdf.interfaces import IORDF, IGraph, ISparqlVocabularyTool
+from gu.z3cform.rdf.interfaces import IORDF, ISparqlVocabularyTool
 from zope.schema.vocabulary import SimpleVocabulary, TreeVocabulary, SimpleTerm
 from z3c.formwidget.query.interfaces import IQuerySource
 from rdflib.namespace import split_uri
 from collections import defaultdict
+
 
 class QuerySimpleVocabulary(SimpleVocabulary):
 
@@ -37,6 +38,7 @@ class GraphVocabularyFactory(object):
         # this here would be the natural way when parsing a sparql-xml-result
         #uris = sorted([item['g'] for item in g])
         return QuerySimpleVocabulary.fromValues(uris)
+
 
 # FIXME: move this dictionary to IORDf tool to make it configurable,... (see ord utils for namespace bindings)
 #        -> maybe turn it into an rdf graph?
@@ -91,24 +93,36 @@ class SparqlInstanceVocabularyFactory(object):
 
     implements(IVocabularyFactory)
 
-    def __init__(self, classuri):
+    def __init__(self, classuri, orderby=None):
         self.classuri = classuri
 
     def __call__(self, context):
         h = getUtility(IORDF).getHandler()
-        r = h.query("select distinct ?uri ?title "
-                    "Where "
-                    "{ Graph?g "
-                    "  { ?uri a %s . "
-                    "    optional { ?uri <http://www.w3.org/2000/01/rdf-schema#label> ?title . }"
-                    "    filter ( !isBlank(?uri) ) "
-                    "  }"
-                    "} "
-                    "order by ?title"
-                    % self.classuri.n3())
-        # this here would be the natural way when parsing a sparql-xml-result
-        #uris = sorted([item['g'] for item in g])
+        if self.orderby:
+            query = ("select distinct ?uri ?title "
+                     "Where "
+                     "{ Graph?g "
+                     "  { ?uri a %s . "
+                     "    optional { ?uri <http://www.w3.org/2000/01/rdf-schema#label> ?title . }"
+                     "    optional { ?uri %s ?ordervar . }"
+                     "    filter ( !isBlank(?uri) ) "
+                     "  }"
+                     "} "
+                     "order by ?ordervar ?title"
+                     % (self.classuri.n3(), self.orderby.n3()))
+        else:
+            query = ("select distinct ?uri ?title "
+                     "Where "
+                     "{ Graph?g "
+                     "  { ?uri a %s . "
+                     "    optional { ?uri <http://www.w3.org/2000/01/rdf-schema#label> ?title . }"
+                     "    filter ( !isBlank(?uri) ) "
+                     "  }"
+                     "} "
+                     "order by ?title"
+                     % self.classuri.n3())
 
+        r = h.query(query)
         terms = []
         for item in r:
             term = SimpleVocabulary.createTerm(item[0], item[0], item[1] or
@@ -126,7 +140,7 @@ class SparqlVocabularyFactory(object):
 
     def __call__(self, context):
         h = getUtility(IORDF).getHandler()
-        params = getUtility(ISparqlVocabularyTool).getContextualParameters(context)     
+        params = getUtility(ISparqlVocabularyTool).getContextualParameters(context)
         r = h.query(self.query.safe_substitute(params))
         # this here would be the natural way when parsing a sparql-xml-result
         #uris = sorted([item['g'] for item in g])
