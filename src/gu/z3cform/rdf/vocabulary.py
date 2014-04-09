@@ -126,8 +126,8 @@ class SparqlInstanceVocabularyFactory(object):
         r = h.query(query)
         terms = []
         for item in r:
-            term = SimpleVocabulary.createTerm(item[0], item[0], item[1] or
-                                               item[0])
+            term = SimpleVocabulary.createTerm(item[0], item[0].encode('utf-8'),
+                                               unicode(item[1]) or unicode(item[0]))
             terms.append(term)
         return QuerySimpleVocabulary(terms)
 
@@ -152,11 +152,12 @@ class SparqlVocabularyFactory(object):
         for item in r:
             if len(item) >= 3:
                 term = SimpleTerm(value=item[0],
-                                  token=item[2],
-                                  title=item[1])
+                                  token=item[2].encode('utf-8'),
+                                  title=unicode(item[1]))
             elif len(item) == 2:
                 term = SimpleTerm(value=item[0],
-                                  title=item[1])
+                                  token=item[0].encode('utf-8'),
+                                  title=unicode(item[1]))
             else:
                 term = SimpleTerm(value=item[0])
             terms.append(term)
