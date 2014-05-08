@@ -105,7 +105,9 @@ class ORDFDataManager(threading.local):
         # self.handler._dm = None ... # Don't delete dm. it is shared across all threads
         # self.handler = None ... # Dan't delete hander ... shared across threads'
         #self.transaction_manager = None ... shared as well
-        # TODO: should we leave the transaction here? or check status?
+        # everything finished now, we can safely unjoin the transaction
+        # TODO: maybe check transaction state?
+        self.transaction._unjoin(self)
         self.transaction = None
 
     def _join(self):
