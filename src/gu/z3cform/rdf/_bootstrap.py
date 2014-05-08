@@ -8,7 +8,8 @@ from rdflib import URIRef
 
 
 class IURIRef(INativeStringLine):
-    """A field containing an URI
+    """
+    A field containing an URI
     """
 
     pass
@@ -16,6 +17,9 @@ class IURIRef(INativeStringLine):
 
 @implementer(IURIRef, IFromUnicode)
 class URIRefField(NativeStringLine):
+    """
+    A field that store its value as rdflib URIRef instance.
+    """
     # can't subclass from schema.URI as it validates to be a URL,
     # but a URI is more generic
 
