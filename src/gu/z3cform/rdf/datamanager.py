@@ -4,7 +4,7 @@ from zope.component import adapts, getUtility
 from z3c.form.interfaces import NO_VALUE
 from z3c.form.datamanager import DataManager
 from gu.z3cform.rdf.interfaces import (IORDF, IRDFObjectPropertyField,
-                                       IGraph, IRDFField)
+                                       IGraph, IRDFField, IResource)
 from plone.uuid.interfaces import IUUIDAware
 
 
@@ -120,6 +120,30 @@ class GraphDataManager(DataManager):
     def canWrite(self):
         """Can the data manager write a value."""
         return True
+
+
+class ResourceDataManager(GraphDataManager):
+
+    adapts(IResource, IRDFField)
+
+    def __init__(self, context, field):
+        self.graph = context.graph
+        # context is a Resource, which has a graph and a subject uri associated
+        # FIXME: what if resource is not part of this graph? shall we load it
+        #        from store then?
+        self.subj = context.identifier
+        self.field = field
+        # TODO: think ... this is slightly different to z3c.form
+        #       fields, where field.__name__ is being used.  __name__
+        #       might be useful in case of ORM.. .(but would I then
+        #       use an N3Field or this datamanager at all?)
+        if not hasattr(field, 'prop'):
+            import ipdb; ipdb.set_trace()
+            # TODO: shall we use field.__name__ with a default url-prefix?
+            self.prop = URIRef('http://fixme.com/noprop')
+        else:
+            self.prop = field.prop
+
 
 
 class ContextGraphDataManager(GraphDataManager):

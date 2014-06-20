@@ -14,6 +14,10 @@
         />
 
     <adapter
+        factory=".datamanager.ResourceDataManager"
+        />
+
+    <adapter
         factory=".datamanager.ContextGraphDataManager"
         />
 
@@ -42,6 +46,10 @@
 
     <class class="rdflib.graph.Graph">
         <implements interface=".interfaces.IGraph"/>
+    </class>
+
+    <class class="rdflib.resource.Resource">
+        <implements interface=".interfaces.IResource"/>
     </class>
 
     <utility

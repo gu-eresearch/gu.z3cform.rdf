@@ -153,6 +153,11 @@ class IGraph(Interface):
     pass
 
 
+class IResource(Interface):
+
+    pass
+
+
 class IIndividual(Interface):
     """
     An RDF / OWL individual
