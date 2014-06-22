@@ -22,12 +22,6 @@
         />
 
     <adapter
-        for="*"
-        factory=".adapter.GetIndividual"
-        provides="gu.z3cform.rdf.interfaces.IIndividual"
-        />
-
-    <adapter
         factory=".formextender.RDFFormExtender" />
 
     <adapter

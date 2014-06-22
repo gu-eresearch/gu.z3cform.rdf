@@ -158,35 +158,6 @@ class IResource(Interface):
     pass
 
 
-class IIndividual(Interface):
-    """
-    An RDF / OWL individual
-    """
-
-    identifier = URIRefField(
-        title=u"Identifier",
-        description=u"The URI for this individual."
-        )
-
-    graph = Object(
-        title=u"Graph",
-        description=u"The store for this individual.",
-        schema=IGraph
-        )
-
-    type = List(
-        title=u"Type",
-        description=u"The RDF / OWL type for this individual.",
-        value_type=URIRefField()
-        )
-
-    sameAs = Object(
-        title=u"Same As",
-        description=u"Same As Individuals",
-        schema=Interface  # IIndividual
-        )
-
-
 class IRDFTypeMapper(Interface):
 
     def applyTypes(graph):
