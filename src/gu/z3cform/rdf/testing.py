@@ -2,7 +2,6 @@ import os.path
 from ordf.graph import Graph, ConjunctiveGraph
 from gu.z3cform.rdf.interfaces import IORDF
 from zope.interface import implementer
-from gu.z3cform.rdf.fresnel.fresnel import Fresnel
 from rdflib import URIRef
 from plone.z3cform.fieldsets.extensible import ExtensibleForm
 from z3c.form import form
@@ -61,24 +60,12 @@ class MockHandler(object):
 @implementer(IORDF)
 class MockIORDFUtility(object):
 
-    fresnel = None
     handler = None
 
     def getHandler(self):
         if self.handler is None:
             self.handler = MockHandler()
         return self.handler
-
-    def getFresnel(self):
-        # TODO: make fresnel_defs configurable for different test scenarios
-        if self.fresnel is None:
-            formatgraph = Fresnel()
-            formatgraph.parse(os.path.join(os.path.dirname(__file__),
-                                           'tests/test_defs.ttl'),
-                              format='turtle')
-            formatgraph.compile()
-            self.fresnel = formatgraph
-        return self.fresnel
 
     def getBaseURI(self):
         return u"http://example.com/"

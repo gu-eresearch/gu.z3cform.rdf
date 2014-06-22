@@ -138,9 +138,6 @@ class IORDF(Interface):
         return an initialised ORDF handler.
         """
 
-    def getFresnel():
-        """ return a pre-compiled Fresnel implementation """
-
     def getBaseURI():
         """ return the base uri to be used for all content """
 
@@ -164,12 +161,6 @@ class IRDFTypeMapper(Interface):
         """
         update rdf:type information in graph
         """
-
-
-class IFresnelVocabularyFactory(Interface):
-    """
-    Marker interface for vocabulary factories registered via Fresnel.
-    """
 
 
 class ISparqlVocabularyTool(Interface):
