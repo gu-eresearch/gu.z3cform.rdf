@@ -1,10 +1,7 @@
 from z3c.form.interfaces import IWidget
 from z3c.form.converter import BaseDataConverter
 from rdflib.util import from_n3
-from gu.z3cform.rdf.interfaces import (IRDFN3Field, IRDFTypeMapper)
-from zope.interface import implementer
 from zope.component import adapter
-from rdflib import RDF
 
 
 @adapter(IRDFN3Field, IWidget)
@@ -29,16 +26,3 @@ class RDFN3DataConverter(BaseDataConverter):
         if value is None:
             return None
         return value.n3()
-
-
-# TODO: move somewhere else
-@implementer(IRDFTypeMapper)
-class RDFTypeMapper(object):
-
-    def __init__(self, context, request, form):
-        self.context = context
-        self.request = request
-        self.form = form
-
-    def applyTypes(self, graph):
-        graph.add((graph.identifier, RDF['type'], self.form.rdftype))

@@ -34,7 +34,7 @@
         for="zope.interface.Interface
              z3c.form.interfaces.IFormLayer
              z3c.form.interfaces.IAddForm"
-        factory=".converter.RDFTypeMapper"
+        factory=".adapter.RDFTypeMapper"
     />
 
     <utility
