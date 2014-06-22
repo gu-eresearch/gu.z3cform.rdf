@@ -8,6 +8,13 @@ from gu.z3cform.rdf._bootstrap import IURIRef
 IURIRef  # make pyflakes happy
 
 
+# FIXME: something in the persistent utility registry has a reference to this interface.
+#        some gu.z3cform.rdf.vocabulary.SparqlInstanceVocabularyFactory
+class IFresnelVocabularyFactory(Interface):
+
+    pass
+
+
 class IRDFField(Interface):
     """
     A field managing values in an rdflib Graph.
