@@ -1,6 +1,7 @@
 from z3c.form.interfaces import IWidget
 from z3c.form.converter import BaseDataConverter
 from rdflib.util import from_n3
+from gu.z3cform.rdf.interfaces import IRDFN3Field
 from zope.component import adapter
 
 

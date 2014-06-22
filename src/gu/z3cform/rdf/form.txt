@@ -16,7 +16,7 @@ TODO: workflow ...
 
     get graph:
     either there is a uri to get whole graph, or it' might be driven
-    by sparql query (this query may come from fresnel definitions)
+    by sparql query
 
     context might be graph itself
 

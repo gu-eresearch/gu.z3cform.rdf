@@ -21,6 +21,11 @@ from ordf.utils import get_identifier
 
 
 class TransactionAwareHandler(Handler):
+    # FIXME: this handler may have side effects.
+    #    only the first .get call returns a new copy from the store.
+    #    subsequent calls within transaction, return the same copp.
+    #    => only one put is necessary at some time to persist all changes.
+    #    Other handlers may not behave like that. (check wthere rdflib/zodb store get's a new graph each time? if yes I'll have to put after all cheanges done to local copy so that next get will get my changes)
 
     _dm = None
 
@@ -44,8 +49,9 @@ class TransactionAwareHandler(Handler):
             # dm.put(identifier, result) no need to cache/store a read only graph
             #   we only put stuff, that will be put back to store
             self.dm.put(result, False)
+            # LOG.info("Handler: Return new graph %s", identifier)
         else:
-            #LOG.info("Handler: Returned cached graph %s", identifier)
+            # LOG.info("Handler: Returned cached graph %s", identifier)
             pass
         return result
 
@@ -102,11 +108,9 @@ class ORDFDataManager(threading.local):
         self.to_remove = []
         self.modified = set()
         #LOG.info("Clear for Handler")
-        # self.handler._dm = None ... # Don't delete dm. it is shared across all threads
-        # self.handler = None ... # Dan't delete hander ... shared across threads'
-        #self.transaction_manager = None ... shared as well
         # everything finished now, we can safely unjoin the transaction
         # TODO: maybe check transaction state?
+        # TODO: remove myself from Handler?
         self.transaction._unjoin(self)
         self.transaction = None
 

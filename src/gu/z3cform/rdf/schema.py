@@ -206,8 +206,7 @@ class RDFURIChoiceField(Choice):
 @implementer(IRDFChoiceField)
 class RDFGroupedURIChoiceField(Choice):
     # FIXME: have a separate class now for tree vocabulary backed field ...
-    #        can register default widget for it. (don't need widgetFactory
-    #        in fresnel defs.)
+    #        can register default widget for it.
 
     prop = FieldProperty(IRDFField['prop'])
 
