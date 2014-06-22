@@ -31,12 +31,6 @@ def test_suite():
             optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS,
             checker=checker,
             ),
-        doctest.DocFileSuite(
-            '../objectproperty.txt',
-            setUp=setUp, tearDown=testing.tearDown,
-            optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS,
-            checker=checker,
-            ),
     ))
     return unittest.TestSuite(tests)
 
