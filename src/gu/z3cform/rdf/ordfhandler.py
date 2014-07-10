@@ -111,7 +111,8 @@ class ORDFDataManager(threading.local):
         # everything finished now, we can safely unjoin the transaction
         # TODO: maybe check transaction state?
         # TODO: remove myself from Handler?
-        self.transaction._unjoin(self)
+        if self.transaction is not None:
+            self.transaction._unjoin(self)
         self.transaction = None
 
     def _join(self):
