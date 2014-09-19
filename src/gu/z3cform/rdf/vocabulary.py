@@ -132,6 +132,16 @@ class SparqlInstanceVocabularyFactory(object):
         return QuerySimpleVocabulary(terms)
 
 
+class StaticSparqlInstanceVocabularyFactory(SparqlInstanceVocabularyFactory):
+
+    _vocab = None
+
+    def __call__(self, context):
+        if self._vocab is None:
+            self._vocab = super(StaticSparqlInstanceVocabularyFactory, self).__call__(context)
+        return self._vocab
+
+
 class SparqlVocabularyFactory(object):
 
     implements(IVocabularyFactory)
